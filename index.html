@@ -654,12 +654,12 @@
             </div>
 
             <!-- Category Toggle -->
-            <div class="tax-toggle" id="compare-mortgage-type-toggle" style="margin-bottom:16px; display:flex;">
-                <button class="tax-btn active" data-type="variable" style="flex:1">Rörligt (3m)</button>
-                <button class="tax-btn" data-type="fixed_1y" style="flex:1">1 År</button>
-                <button class="tax-btn" data-type="fixed_2y" style="flex:1">2 År</button>
-                <button class="tax-btn" data-type="fixed_3y" style="flex:1">3 År</button>
-                <button class="tax-btn" data-type="fixed_5y" style="flex:1">5 År</button>
+            <div id="compare-mortgage-type-toggle" style="margin-bottom:16px; display:grid; grid-template-columns:repeat(5,1fr); gap:6px;">
+                <button class="mortgage-bind-btn active" data-type="variable" style="padding:10px 4px; border-radius:8px; border:2px solid var(--accent-primary); background:rgba(0,255,136,0.12); color:#00ff88; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">Rörligt<br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">(3 mån)</span></button>
+                <button class="mortgage-bind-btn" data-type="fixed_1y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">1 År</button>
+                <button class="mortgage-bind-btn" data-type="fixed_2y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">2 År</button>
+                <button class="mortgage-bind-btn" data-type="fixed_3y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">3 År</button>
+                <button class="mortgage-bind-btn" data-type="fixed_5y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">5 År</button>
             </div>
 
             <!-- Bostadsvärde -->
@@ -748,7 +748,7 @@
             
             <div id="compare-mortgage-history-container" style="margin-top:16px; display:none;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <p style="color:var(--text-muted);font-size:0.8rem;margin:0;">Jämförelse av historiska snitträntor för rörligt (3m).</p>
+                    <p style="color:var(--text-muted);font-size:0.8rem;margin:0;">Jämförelse av historiska räntor. <span style="color:var(--accent-primary);">Klicka på bankernas namn under grafen för att visa/dölja fler!</span></p>
                     <div id="history-zoom-controls" style="display:flex; gap:6px;">
                         <button class="zoom-btn" data-years="1" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">1 År</button>
                         <button class="zoom-btn" data-years="3" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">3 År</button>
@@ -761,11 +761,11 @@
                 </div>
                 <!-- Insikts-panel -->
                 <div id="history-insights-panel" style="margin-top:16px; padding:16px; background:var(--bg-secondary); border-left:3px solid var(--accent-primary); border-radius:4px;">
-                    <h4 style="margin:0 0 8px 0; font-size:0.85rem; color:var(--text-primary); display:flex; align-items:center; gap:6px;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        Smarta Insikter
+                    <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:var(--accent-primary); display:flex; align-items:center; gap:6px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        Historisk Bankanalys
                     </h4>
-                    <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.5;">
+                    <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
                         <li>Laddar insikter...</li>
                     </ul>
                 </div>

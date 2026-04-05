@@ -1559,11 +1559,21 @@ const App = {
         // ── Render freshness badge ──
         this.renderRatesFreshnessBadge();
 
-        // Bind type toggle
-        document.querySelectorAll('#compare-mortgage-type-toggle .tax-btn').forEach(btn => {
+        // Bind type toggle  
+        document.querySelectorAll('#compare-mortgage-type-toggle .mortgage-bind-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('#compare-mortgage-type-toggle .tax-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('#compare-mortgage-type-toggle .mortgage-bind-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.border = '2px solid var(--border-color)';
+                    b.style.background = 'var(--bg-tertiary)';
+                    b.style.color = 'var(--text-muted)';
+                    b.style.fontWeight = '600';
+                });
                 btn.classList.add('active');
+                btn.style.border = '2px solid var(--accent-primary)';
+                btn.style.background = 'rgba(0,255,136,0.12)';
+                btn.style.color = '#00ff88';
+                btn.style.fontWeight = '700';
                 this._compareMortgageActiveType = btn.dataset.type;
                 this.populateCompareMortgageSelect();
                 this.updateCompareMortgageView();
@@ -1707,114 +1717,144 @@ const App = {
         const insightsList = document.getElementById('history-insights-list');
         if (!insightsList) return;
         
-        const bankSelect = document.getElementById('compare-mortgage-current-bank');
-        const selectedId = bankSelect ? bankSelect.value : null;
-        let myBank = null;
-        if (selectedId && window.MORTGAGE_BANKS) {
-            const b = window.MORTGAGE_BANKS.find(x => x.id === selectedId);
-            if (b) myBank = b.name;
-        }
-        
         const scb = currentData["SCB_Marknad"];
-        
-        if (!myBank || !scb || !currentData[myBank] || currentData[myBank].length === 0) {
-            insightsList.innerHTML = '<li>Mer data krävs för att generera insikter om din nuvarande bank.</li>';
+        if (!scb) {
+            insightsList.innerHTML = '<li>Marknadsdata (SCB) saknas.</li>';
             return;
         }
 
-        const myBankRates = currentData[myBank];
         const months = db.months;
+        const N = months.length;
         
-        // Find how many months we have overlap between SCB and myBank
-        let diffSum = 0;
-        let count = 0;
-        let minDiff = 999;
-        let maxDiff = -999;
-        let bestMonth = '';
+        // ── Step 1: Analyze every bank ──
+        const bankAnalyses = [];
         
-        for (let i = Math.max(0, months.length - 60); i < months.length; i++) {
-            if (myBankRates[i] !== null && scb[i] !== null) {
-                const diff = myBankRates[i] - scb[i];
-                diffSum += diff;
-                count++;
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    bestMonth = months[i];
-                }
-                if (diff > maxDiff) maxDiff = diff;
-            }
-        }
-        
-        // Analyze recent momentum (last 6 months)
-        let earlyMoverStatus = "";
-        let hasSixMonthsData = false;
-        
-        if (months.length > 6) {
-            const sixMonthsAgoIndex = months.length - 7;
-            const myRecentDrop = (myBankRates[sixMonthsAgoIndex] || 0) - (myBankRates[months.length - 1] || 0);
-            const scbRecentDrop = (scb[sixMonthsAgoIndex] || 0) - (scb[months.length - 1] || 0);
+        for (const [bankName, rates] of Object.entries(currentData)) {
+            if (bankName === "SCB_Marknad") continue;
             
-            if (myBankRates[sixMonthsAgoIndex] !== null && myBankRates[months.length - 1] !== null) {
-                hasSixMonthsData = true;
-                if (myRecentDrop > scbRecentDrop + 0.1) {
-                    earlyMoverStatus = `🔥 <b>Stark nedåttrend:</b> Senaste halvåret har ${myBank} sänkt snitträntan snabbare än marknaden i övrigt.`;
-                } else if (scbRecentDrop > myRecentDrop + 0.1) {
-                    earlyMoverStatus = `⚠️ <b>Segfotade:</b> Senaste halvåret har ${myBank} varit långsammare än snittet på att föra vidare Riksbankens prissänkningar till kunderna.`;
-                } else {
-                    earlyMoverStatus = `⚖️ <b>Följer strömmen:</b> På kort sikt (senaste 6 mån) har ${myBank} följt marknadssänkningarna nästan exakt på decimalen.`;
+            const nonNull = rates.filter(r => r !== null);
+            if (nonNull.length < 12) continue; // Need at least 1 year of data
+            
+            // Calculate average vs SCB over entire overlap
+            let totalDiffSum = 0, totalDiffCount = 0;
+            let last3yDiffSum = 0, last3yCount = 0;
+            
+            for (let i = 0; i < N; i++) {
+                if (rates[i] !== null && scb[i] !== null) {
+                    const diff = rates[i] - scb[i];
+                    totalDiffSum += diff;
+                    totalDiffCount++;
+                    
+                    if (i >= N - 36) { // Last 3 years
+                        last3yDiffSum += diff;
+                        last3yCount++;
+                    }
                 }
             }
-        }
-        
-        // Find best bank
-        let lowestRate = 99;
-        let bestBank = '';
-        for (const [b, rates] of Object.entries(currentData)) {
-            if (b === "SCB_Marknad") continue;
-            const lastVal = rates[rates.length - 1];
-            if (lastVal && lastVal < lowestRate) {
-                lowestRate = lastVal;
-                bestBank = b;
+            
+            if (totalDiffCount === 0) continue;
+            
+            const avgDiffAll = totalDiffSum / totalDiffCount; // pos = dyrare
+            const avgDiff3y = last3yCount > 0 ? last3yDiffSum / last3yCount : null;
+            const currentRate = rates[N - 1];
+            
+            // Reactivity analysis: how fast does this bank follow SCB during big moves?
+            // Look at the 2022-2023 hike period
+            let hikeReactivity = null;
+            const hikeStartIdx = months.indexOf("2022-01");
+            const hikePeakIdx = months.indexOf("2023-09");
+            if (hikeStartIdx >= 0 && hikePeakIdx >= 0 && rates[hikeStartIdx] !== null && rates[hikePeakIdx] !== null && scb[hikeStartIdx] !== null && scb[hikePeakIdx] !== null) {
+                const bankHike = rates[hikePeakIdx] - rates[hikeStartIdx];
+                const scbHike = scb[hikePeakIdx] - scb[hikeStartIdx];
+                hikeReactivity = scbHike > 0 ? (bankHike / scbHike) : null;
             }
+            
+            // Drop analysis: how fast did they lower during 2024-2025?
+            let dropReactivity = null;
+            const dropStartIdx = months.indexOf("2023-09");
+            const dropEndIdx = N - 1;
+            if (dropStartIdx >= 0 && rates[dropStartIdx] !== null && rates[dropEndIdx] !== null && scb[dropStartIdx] !== null && scb[dropEndIdx] !== null) {
+                const bankDrop = rates[dropStartIdx] - rates[dropEndIdx];
+                const scbDrop = scb[dropStartIdx] - scb[dropEndIdx];
+                dropReactivity = scbDrop > 0 ? (bankDrop / scbDrop) : null;
+            }
+            
+            bankAnalyses.push({
+                name: bankName,
+                avgDiffAll: avgDiffAll,
+                avgDiff3y: avgDiff3y,
+                currentRate: currentRate,
+                months: totalDiffCount,
+                hikeReactivity: hikeReactivity,
+                dropReactivity: dropReactivity
+            });
         }
         
+        if (bankAnalyses.length === 0) {
+            insightsList.innerHTML = '<li>Ingen tillräcklig historik finns för att göra en analys.</li>';
+            return;
+        }
+        
+        // ── Step 2: Rank banks ──
+        const ranked = [...bankAnalyses].sort((a, b) => a.avgDiffAll - b.avgDiffAll); // Lowest diff = cheapest
+        
+        // ── Step 3: Generate per-bank verdict ──
         let html = '';
         
-        // 1. My Bank Insight
-        if (count > 12) { // Need at least a year for a real average
-            const avgDiff = (diffSum / count) * -1; // positive = better for customer
+        // Overall ranking header
+        const bestName = ranked[0].name;
+        const worstName = ranked[ranked.length - 1].name;
+        
+        html += `<li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">
+            <b>📊 Ranking (baserat på historiskt snittavvikelse mot marknaden):</b><br>
+            <span style="color:#00ff88;">🥇 ${ranked[0].name}</span>`;
+        if (ranked.length > 1) html += ` · <span style="color:#00ccff;">🥈 ${ranked[1].name}</span>`;
+        if (ranked.length > 2) html += ` · <span style="color:#ff9900;">🥉 ${ranked[2].name}</span>`;
+        if (ranked.length > 3) {
+            html += `<br><span style="font-size:0.75rem;opacity:0.7;">`;
+            for (let i = 3; i < ranked.length; i++) {
+                html += `${i + 1}. ${ranked[i].name}`;
+                if (i < ranked.length - 1) html += ' · ';
+            }
+            html += `</span>`;
+        }
+        html += `</li>`;
+        
+        // Per-bank analysis
+        for (const bank of ranked) {
+            let emoji = '';
+            let verdict = '';
+            const diffPct = Math.abs(bank.avgDiffAll).toFixed(2);
             
-            if (avgDiff > 0.05) {
-                html += `<li style="margin-bottom:6px;">💰 <b>Vass historik:</b> I genomsnitt har ditt val av ${myBank} legat <b>${avgDiff.toFixed(2)}% under</b> marknadssnittet historiskt.</li>`;
-            } else if (avgDiff < -0.05) {
-                html += `<li style="margin-bottom:6px;">💸 <b>Kräver förhandling:</b> Historiskt sett har ${myBank} haft en genomsnittlig ränta som varit <b>${Math.abs(avgDiff).toFixed(2)}% över</b> marknadssnittet. Dags att ringa dem!</li>`;
+            // Price level verdict
+            if (bank.avgDiffAll < -0.05) {
+                emoji = '💰';
+                verdict = `Historiskt <b>${diffPct}% billigare</b> än marknadssnittet.`;
+            } else if (bank.avgDiffAll > 0.05) {
+                emoji = '💸';
+                verdict = `Historiskt <b>${diffPct}% dyrare</b> än marknadssnittet.`;
             } else {
-                html += `<li style="margin-bottom:6px;">🎯 <b>Medelvägen:</b> Din bank (${myBank}) prispressar sällan branschen, utan lägger sig historiskt sett nästan exakt på genomsnittet för alla banker.</li>`;
+                emoji = '🎯';
+                verdict = `Exakt på genomsnittet historiskt.`;
             }
-        } else {
-            // Fallback for banks without much history (like ICA Banken or Länsförsäkringar)
-            const myCurrent = myBankRates[months.length - 1];
-            const scbCurrent = scb[months.length - 1];
-            if (myCurrent !== null && scbCurrent !== null) {
-                const curDiff = (scbCurrent - myCurrent).toFixed(2);
-                if (curDiff > 0) {
-                     html += `<li style="margin-bottom:6px;">📊 <b>Status just nu:</b> ${myBank} saknar tyvärr historiskt data innan 2026 i vårt system, men <b>just nu</b> ligger de ${curDiff}% under genomsnittet!</li>`;
+            
+            // Reactivity verdict
+            let reactVerdict = '';
+            if (bank.hikeReactivity !== null && bank.dropReactivity !== null) {
+                if (bank.hikeReactivity > 1.05 && bank.dropReactivity < 0.95) {
+                    reactVerdict = ` Höjde snabbare än snittet under 2022–2023, men <b>sänkte långsammare</b> efter. Förhandla hårt!`;
+                } else if (bank.hikeReactivity < 0.95 && bank.dropReactivity > 1.05) {
+                    reactVerdict = ` Skyddade sina kunder under räntechocken 2022, och var <b>snabb på att sänka</b> när det vände. Kundvänligt beteende.`;
+                } else if (bank.dropReactivity > 1.05) {
+                    reactVerdict = ` <b>Snabb på att sänka</b> räntan under det senaste nedsvinget – bra för låntagaren.`;
+                } else if (bank.dropReactivity < 0.90) {
+                    reactVerdict = ` <b>Trög på att sänka</b> – behöll marginaler längre än konkurrenterna under senaste perioden av räntesänkningar.`;
                 } else {
-                     html += `<li style="margin-bottom:6px;">📊 <b>Dyr just nu:</b> ${myBank} saknar tyvärr äldre historiskt data, men just nu ligger de ${Math.abs(curDiff)}% <b>över</b> marknadssnittet. Ouch!</li>`;
+                    reactVerdict = ` Följde marknadens rörelser nästan identiskt under hela räntecykeln 2022–2025.`;
                 }
-            } else {
-                html += `<li style="margin-bottom:6px;">📊 ${myBank} saknar öppen historik i tillräcklig mängd för att bygga en långsiktig trend.</li>`;
             }
-        }
-        
-        // 2. Momentum Insight
-        if (hasSixMonthsData && earlyMoverStatus) {
-            html += `<li style="margin-bottom:6px;">${earlyMoverStatus}</li>`;
-        }
-        
-        // 3. Best Bank Insight
-        if (bestBank && bestBank !== myBank) {
-            html += `<li style="margin-bottom:6px;">🏆 <b>Bäst i klassen:</b> Kolla in <b>${bestBank}</b>! De har just nu den lägsta genomsnittsräntan av alla på ${lowestRate}%.</li>`;
+            
+            html += `<li style="margin-bottom:8px;">${emoji} <b>${bank.name}:</b> ${verdict}${reactVerdict} <span style="opacity:0.6;font-size:0.75rem;">(Nu: ${bank.currentRate}%)</span></li>`;
         }
         
         insightsList.innerHTML = html;
