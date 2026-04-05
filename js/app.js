@@ -835,6 +835,26 @@ const App = {
     },
 
     bindMortgageEvents() {
+        // Subtabs (Historik vs Backtest)
+        document.querySelectorAll('.mort-subtab').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.mort-subtab').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.color = 'var(--text-muted)';
+                    b.style.borderBottomColor = 'transparent';
+                });
+                
+                const target = e.target;
+                target.classList.add('active');
+                target.style.color = 'var(--text-primary)';
+                target.style.borderBottomColor = 'var(--accent-primary)';
+                
+                const tabId = target.dataset.tab;
+                document.getElementById('mort-view-historik').style.display = tabId === 'historik' ? 'block' : 'none';
+                document.getElementById('mort-view-backtest').style.display = tabId === 'backtest' ? 'block' : 'none';
+            });
+        });
+
         // Loan slider
         document.getElementById('mort-loan').addEventListener('input', (e) => {
             const v = parseInt(e.target.value);

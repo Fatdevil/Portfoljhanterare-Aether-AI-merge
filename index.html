@@ -497,40 +497,51 @@
 
             <!-- RIGHT: Charts & Results -->
             <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
-                <div class="panel-header">
+                <div class="panel-header" style="padding-bottom:0">
                     <h2>STRUKTURELL ANALYS — BOLÅNERÄNTOR SEDAN 2005</h2>
                     <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Källa: SCB Finansmarknadsstatistik (FM5001)</p>
-                </div>
-
-                <!-- Historical Rate Chart -->
-                <div class="panel-section">
-                    <h3>📈 Historiska bolåneräntor</h3>
-                    <div style="height:350px;position:relative">
-                        <canvas id="mort-history-chart"></canvas>
+                    
+                    <div style="display:flex;gap:16px;margin-top:16px;border-bottom:1px solid var(--border-color)">
+                        <button class="mort-subtab active" data-tab="historik" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">📈 Historik & Statistik</button>
+                        <button class="mort-subtab" data-tab="backtest" style="background:transparent;border:none;color:var(--text-muted);padding:8px 0;cursor:pointer;border-bottom:2px solid transparent;font-weight:600;font-size:0.85rem;">🔬 Jämför / Backtest</button>
                     </div>
                 </div>
 
-                <!-- Backtest Comparison -->
-                <div class="panel-section">
-                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                        <h3 style="margin:0">🔬 Backtest — Vad hade du betalat?</h3>
-                        <select id="mort-period-select" style="background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:4px 10px;font-size:0.75rem;font-family:'JetBrains Mono',monospace">
-                            <option value="5">Senaste 5 åren</option>
-                            <option value="10" selected>Senaste 10 åren</option>
-                            <option value="20">Max (sedan 2014)</option>
-                        </select>
+                <!-- TAB 1: HISTORIK -->
+                <div id="mort-view-historik">
+                    <!-- Historical Rate Chart -->
+                    <div class="panel-section" style="border-top:none">
+                        <h3>📈 Historiska bolåneräntor</h3>
+                        <div style="height:350px;position:relative">
+                            <canvas id="mort-history-chart"></canvas>
+                        </div>
                     </div>
-                    <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0">Jämför din strategi mot standardstrategier under vald period</p>
-                    <div id="mort-backtest-table" style="margin-top:12px"></div>
-                    <div style="height:300px;position:relative;margin-top:16px">
-                        <canvas id="mort-backtest-chart"></canvas>
+                    
+                    <!-- Rate Stats Table -->
+                    <div class="panel-section">
+                        <h3>📋 Räntestatistik — Alla bindningstider</h3>
+                        <div id="mort-stats-table" style="margin-top:12px"></div>
                     </div>
                 </div>
 
-                <!-- Rate Stats Table -->
-                <div class="panel-section">
-                    <h3>📋 Räntestatistik — Alla bindningstider</h3>
-                    <div id="mort-stats-table" style="margin-top:12px"></div>
+                <!-- TAB 2: BACKTEST -->
+                <div id="mort-view-backtest" style="display:none">
+                    <!-- Backtest Comparison -->
+                    <div class="panel-section" style="border-top:none">
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                            <h3 style="margin:0">🔬 Backtest — Vad hade du betalat?</h3>
+                            <select id="mort-period-select" style="background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:4px 10px;font-size:0.75rem;font-family:'JetBrains Mono',monospace">
+                                <option value="5">Senaste 5 åren</option>
+                                <option value="10" selected>Senaste 10 åren</option>
+                                <option value="20">Max (sedan 2014)</option>
+                            </select>
+                        </div>
+                        <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0">Jämför din strategi mot standardstrategier under vald period</p>
+                        <div id="mort-backtest-table" style="margin-top:12px"></div>
+                        <div style="height:300px;position:relative;margin-top:16px">
+                            <canvas id="mort-backtest-chart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
