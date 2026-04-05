@@ -1578,6 +1578,11 @@ const App = {
                 this.populateCompareMortgageSelect();
                 this.updateCompareMortgageView();
                 this.updatePersonalRates();
+                // Re-render chart + insights if history tab is active
+                const activeTab = document.querySelector('#compare-mortgage-right-tabs .nav-btn.active');
+                if (activeTab && activeTab.dataset.tab === 'history') {
+                    this.renderMortgageHistoryChart();
+                }
             });
         });
 
