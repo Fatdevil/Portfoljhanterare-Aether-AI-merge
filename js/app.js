@@ -1985,7 +1985,8 @@ const App = {
                 tension: 0.1,
                 pointRadius: 0,
                 pointHoverRadius: 5,
-                hidden: defaultHidden
+                hidden: defaultHidden,
+                spanGaps: true
             });
         }
 
