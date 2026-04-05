@@ -759,25 +759,26 @@
                 <div style="position:relative; height:350px; width:100%;">
                     <canvas id="mortgage-history-chart"></canvas>
                 </div>
-                <!-- Insikts-panel -->
-                <div id="history-insights-panel" style="margin-top:16px; padding:16px; background:var(--bg-secondary); border-left:3px solid var(--accent-primary); border-radius:4px;">
-                    <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:var(--accent-primary); display:flex; align-items:center; gap:6px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                        Historisk Bankanalys
-                    </h4>
-                    <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
-                        <li>Laddar insikter...</li>
-                    </ul>
-                </div>
-                <!-- Bank Profiles Panel -->
-                <div id="bank-profiles-panel" style="margin-top:16px; padding:16px; background:var(--bg-secondary); border-left:3px solid #ff9900; border-radius:4px;">
-                    <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#ff9900; display:flex; align-items:center; gap:6px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Bankprofiler — Sammanfattning över alla löptider
-                    </h4>
-                    <div id="bank-profiles-list" style="color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
-                        Laddar bankprofiler...
-                    </div>
+            </div>
+
+            <!-- Analysis panels — always visible regardless of tab -->
+            <div id="history-insights-panel" style="margin-top:16px; padding:16px; background:var(--bg-secondary); border-left:3px solid var(--accent-primary); border-radius:4px;">
+                <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:var(--accent-primary); display:flex; align-items:center; gap:6px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    Historisk Bankanalys
+                </h4>
+                <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
+                    <li>Laddar insikter...</li>
+                </ul>
+            </div>
+            <!-- Bank Profiles Panel -->
+            <div id="bank-profiles-panel" style="margin-top:16px; padding:16px; background:var(--bg-secondary); border-left:3px solid #ff9900; border-radius:4px;">
+                <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#ff9900; display:flex; align-items:center; gap:6px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Bankprofiler — Sammanfattning över alla löptider
+                </h4>
+                <div id="bank-profiles-list" style="color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
+                    Laddar bankprofiler...
                 </div>
             </div>
         </div>

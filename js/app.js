@@ -1669,6 +1669,17 @@ const App = {
         // Also ensure charting works initially if they start on history (unlikely, but safe)
         if(document.querySelector('#compare-mortgage-right-tabs .active').dataset.tab === 'history'){
              this.renderMortgageHistoryChart();
+        } else {
+            // Even on the list tab, generate insights + profiles
+            if (window.MORTGAGE_HISTORY) {
+                const db = window.MORTGAGE_HISTORY;
+                const binding = this._compareMortgageActiveType;
+                const currentData = db.data[binding];
+                if (currentData) {
+                    this.generateMortgageInsights(db, currentData, binding);
+                }
+                this.generateBankProfiles();
+            }
         }
 
         this._compareMortgageInit = true;
