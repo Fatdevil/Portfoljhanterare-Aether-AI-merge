@@ -502,13 +502,13 @@
                     <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Källa: SCB Finansmarknadsstatistik (FM5001)</p>
                     
                     <div style="display:flex;gap:16px;margin-top:16px;border-bottom:1px solid var(--border-color)">
-                        <button class="mort-subtab active" data-tab="historik" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">📈 Historik & Statistik</button>
-                        <button class="mort-subtab" data-tab="backtest" style="background:transparent;border:none;color:var(--text-muted);padding:8px 0;cursor:pointer;border-bottom:2px solid transparent;font-weight:600;font-size:0.85rem;">🔬 Jämför / Backtest</button>
+                        <button class="mort-subtab" data-tab="historik" style="background:transparent;border:none;color:var(--text-muted);padding:8px 0;cursor:pointer;border-bottom:2px solid transparent;font-weight:600;font-size:0.85rem;">📈 Historik & Statistik</button>
+                        <button class="mort-subtab active" data-tab="backtest" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">🔬 Jämför / Backtest</button>
                     </div>
                 </div>
 
                 <!-- TAB 1: HISTORIK -->
-                <div id="mort-view-historik">
+                <div id="mort-view-historik" style="display:none">
                     <!-- Historical Rate Chart -->
                     <div class="panel-section" style="border-top:none">
                         <h3>📈 Historiska bolåneräntor</h3>
@@ -525,7 +525,7 @@
                 </div>
 
                 <!-- TAB 2: BACKTEST -->
-                <div id="mort-view-backtest" style="display:none">
+                <div id="mort-view-backtest">
                     <!-- Backtest Comparison -->
                     <div class="panel-section" style="border-top:none">
                         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
