@@ -736,7 +736,7 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-bottom:1px solid var(--border-color)">
                     <div id="compare-mortgage-right-tabs" style="display:flex;gap:16px;">
                         <button class="nav-btn active" data-tab="list" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">📊 Snittränta</button>
-                        <button class="nav-btn" data-tab="history" style="background:transparent;border:none;color:var(--text-muted);padding:8px 0;cursor:pointer;border-bottom:2px solid transparent;font-weight:600;font-size:0.85rem;">📈 Historik (10 år)</button>
+                        <button class="nav-btn" data-tab="history" style="background:transparent;border:none;color:var(--text-muted);padding:8px 0;cursor:pointer;border-bottom:2px solid transparent;font-weight:600;font-size:0.85rem;">📈 Historik</button>
                     </div>
                     <span id="rates-freshness-badge" style="font-size:0.7rem;padding:3px 10px;border-radius:12px;font-family:'JetBrains Mono',monospace;white-space:nowrap;">Laddar...</span>
                 </div>
@@ -747,9 +747,27 @@
             </div>
             
             <div id="compare-mortgage-history-container" style="margin-top:16px; display:none;">
-                <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px;">Svenska genomsnittsräntor över tid (Källa: SCB & Bankernas egna rapporter). Klicka på en bank i teckenförklaringen för att dölja/visa.</p>
-                <div style="position:relative; height:400px; width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <p style="color:var(--text-muted);font-size:0.8rem;margin:0;">Jämförelse av historiska snitträntor för rörligt (3m).</p>
+                    <div id="history-zoom-controls" style="display:flex; gap:6px;">
+                        <button class="zoom-btn" data-years="1" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">1 År</button>
+                        <button class="zoom-btn" data-years="3" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">3 År</button>
+                        <button class="zoom-btn active" data-years="5" style="background:var(--accent-primary);border:1px solid var(--accent-primary);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">5 År</button>
+                        <button class="zoom-btn" data-years="10" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">Max</button>
+                    </div>
+                </div>
+                <div style="position:relative; height:350px; width:100%;">
                     <canvas id="mortgage-history-chart"></canvas>
+                </div>
+                <!-- Insikts-panel -->
+                <div id="history-insights-panel" style="margin-top:16px; padding:16px; background:var(--bg-secondary); border-left:3px solid var(--accent-primary); border-radius:4px;">
+                    <h4 style="margin:0 0 8px 0; font-size:0.85rem; color:var(--text-primary); display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        Smarta Insikter
+                    </h4>
+                    <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.5;">
+                        <li>Laddar insikter...</li>
+                    </ul>
                 </div>
             </div>
         </div>

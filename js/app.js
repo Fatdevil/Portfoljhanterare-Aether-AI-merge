@@ -1263,8 +1263,11 @@ const App = {
     bindEvents() {
         document.getElementById('theme-toggle').addEventListener('click', () => this.toggleTheme());
 
-        document.querySelectorAll('.nav-btn').forEach(btn =>
-            btn.addEventListener('click', () => this.switchView(btn.dataset.view)));
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            if (btn.dataset.view) {
+                btn.addEventListener('click', () => this.switchView(btn.dataset.view));
+            }
+        });
 
         // Bank selector
         document.querySelectorAll('#bank-selector .bank-btn').forEach(btn => {
@@ -1620,6 +1623,23 @@ const App = {
             });
         });
 
+        // Bind zoom buttons for history chart
+        document.querySelectorAll('.zoom-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.zoom-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.background = 'var(--bg-tertiary)';
+                    b.style.color = 'var(--text-muted)';
+                    b.style.borderColor = 'var(--border-color)';
+                });
+                btn.classList.add('active');
+                btn.style.background = 'var(--accent-primary)';
+                btn.style.color = '#fff';
+                btn.style.borderColor = 'var(--accent-primary)';
+                this.renderMortgageHistoryChart();
+            });
+        });
+
         // Initial render
         this.updateLTV();
         this.updatePersonalRates();
@@ -1677,6 +1697,87 @@ const App = {
         return 0;
     },
 
+    // ── Generate Mortgage Insights ──
+    generateMortgageInsights(db, currentData, binding) {
+        const insightsList = document.getElementById('history-insights-list');
+        if (!insightsList) return;
+        
+        const bankSelect = document.getElementById('compare-mortgage-current-bank');
+        const selectedId = bankSelect ? bankSelect.value : null;
+        let myBank = null;
+        if (selectedId && window.MORTGAGE_BANKS) {
+            const b = window.MORTGAGE_BANKS.find(x => x.id === selectedId);
+            if (b) myBank = b.name;
+        }
+        
+        const scb = currentData["SCB_Marknad"];
+        
+        if (!myBank || !scb || !currentData[myBank] || currentData[myBank].length === 0) {
+            insightsList.innerHTML = '<li>Mer data krävs för att generera insikter om din nuvarande bank.</li>';
+            return;
+        }
+
+        const myBankRates = currentData[myBank];
+        const months = db.months;
+        
+        // Find how many months we have overlap between SCB and myBank
+        let diffSum = 0;
+        let count = 0;
+        let minDiff = 999;
+        let maxDiff = -999;
+        let bestMonth = '';
+        
+        for (let i = Math.max(0, months.length - 60); i < months.length; i++) {
+            if (myBankRates[i] !== null && scb[i] !== null) {
+                const diff = myBankRates[i] - scb[i];
+                diffSum += diff;
+                count++;
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestMonth = months[i];
+                }
+                if (diff > maxDiff) maxDiff = diff;
+            }
+        }
+        
+        // Analyze recent momentum (last 6 months)
+        let earlyMoverStatus = "";
+        if (months.length > 6) {
+            const sixMonthsAgoIndex = months.length - 7;
+            const myRecentDrop = (myBankRates[sixMonthsAgoIndex] || 0) - (myBankRates[months.length - 1] || 0);
+            const scbRecentDrop = (scb[sixMonthsAgoIndex] || 0) - (scb[months.length - 1] || 0);
+            
+            if (myRecentDrop > scbRecentDrop + 0.1) {
+                earlyMoverStatus = `🔥 <b>Aggressiva prissänkningar:</b> De senaste 6 månaderna har ${myBank} sänkt snitträntan snabbare än marknaden i övrigt.`;
+            } else if (scbRecentDrop > myRecentDrop + 0.1) {
+                earlyMoverStatus = `⚠️ <b>Segfotade sänkningar:</b> De senaste 6 månaderna har ${myBank} varit långsammare än snittet på att föra vidare prissänkningar till kunderna.`;
+            } else {
+                earlyMoverStatus = `⚖️ <b>Följer strömmen:</b> På kort sikt (senaste 6 mån) har ${myBank} följt de generella marknadssänkningarna nästan exakt på decimalen.`;
+            }
+        }
+        
+        let html = '';
+        if (count > 0) {
+            const avgDiff = (diffSum / count) * -1; // positive = better for customer
+            
+            if (avgDiff > 0.05) {
+                html += `<li>💰 <b>Vass historik:</b> I genomsnitt över de senaste 5 åren har ditt val av ${myBank} legat <b>${avgDiff.toFixed(2)}% under</b> marknadssnittet.</li>`;
+            } else if (avgDiff < -0.05) {
+                html += `<li>💸 <b>Dyrare än snittet:</b> Historiskt sett har ${myBank} haft en genomsnittlig ränta som varit <b>${Math.abs(avgDiff).toFixed(2)}% över</b> marknadssnittet. Förhandlingsläge!</li>`;
+            } else {
+                html += `<li>🎯 <b>Exakt på snittet:</b> Din bank (${myBank}) prispressar sällan branschen, utan lägger sig historiskt sett nästan exakt på genomsnittet för alla banker.</li>`;
+            }
+            
+            if (earlyMoverStatus) {
+                html += `<li>${earlyMoverStatus}</li>`;
+            }
+        } else {
+            html += '<li>För kort historik för din valda bank för att bygga en tillförlitlig 5-års trend.</li>';
+        }
+        
+        insightsList.innerHTML = html;
+    },
+
     // ── Render History Chart ──
     renderMortgageHistoryChart() {
         if (!window.MORTGAGE_HISTORY) return;
@@ -1688,6 +1789,44 @@ const App = {
         const binding = this._compareMortgageActiveType;
         const currentData = db.data[binding];
         if (!currentData) return;
+        
+        // Zoom functionality
+        let zoomYears = 5;
+        const activeZoomBtn = document.querySelector('.zoom-btn.active');
+        if (activeZoomBtn) {
+            zoomYears = activeZoomBtn.dataset.years === '10' ? 999 : parseInt(activeZoomBtn.dataset.years);
+        }
+        
+        const bankSelect = document.getElementById('compare-mortgage-current-bank');
+        const selectedId = bankSelect ? bankSelect.value : null;
+        let myBank = null;
+        if (selectedId && window.MORTGAGE_BANKS) {
+            const b = window.MORTGAGE_BANKS.find(x => x.id === selectedId);
+            if (b) myBank = b.name;
+        }
+        
+        this.generateMortgageInsights(db, currentData, binding);
+
+        // Calculate slice index based on zoom
+        const monthsCount = db.months.length;
+        let startIndex = 0;
+        if (zoomYears !== 999) {
+            startIndex = Math.max(0, monthsCount - (zoomYears * 12));
+        }
+
+        const slicedMonths = db.months.slice(startIndex);
+
+        // Find the absolute best bank (lowest average today)
+        let lowestRate = 99;
+        let bestBank = '';
+        for (const [bank, rates] of Object.entries(currentData)) {
+            if (bank === "SCB_Marknad") continue;
+            const lastVal = rates[rates.length - 1];
+            if (lastVal && lastVal < lowestRate) {
+                lowestRate = lastVal;
+                bestBank = bank;
+            }
+        }
 
         // Colors mapping
         const bankColors = {
@@ -1699,23 +1838,48 @@ const App = {
             "Nordea": "#0055ff",
             "ICA Banken": "#ff3366",
             "Skandiabanken": "#00ccff",
-            "Länsförsäkringar": "#ff0000"
+            "Länsförsäkringar": "#ff0000",
+            "Danske Bank": "#eeb422"
         };
 
         const datasets = [];
         
         for (const [bank, rates] of Object.entries(currentData)) {
             const isScb = bank === "SCB_Marknad";
+            const isMyBank = bank === myBank;
+            const isBestBank = bank === bestBank;
+            
+            // Anti-spaghetti logic: dim non-interesting banks initially
+            // Let chartjs display them via legend interactions, or make them visually dim
+            let defaultHidden = false;
+            let displayOpacity = 1;
+            let borderWidth = 2.5;
+            
+            if (!isScb && !isMyBank && !isBestBank) {
+                defaultHidden = true; // They are in legend, but crossed out by default
+            }
+            if (isScb) {
+                borderWidth = 2;
+                displayOpacity = 0.5;
+            } else if (isBestBank && !isMyBank) {
+                displayOpacity = 0.7; // Best bank gets highlighted, but myBank is king
+            }
+
+            const c = bankColors[bank] || "hsl(" + (Math.random() * 360) + ", 70%, 60%)";
+            
+            // For custom hover interaction logic, ChartJS handles it usually, 
+            // but we use hidden config to reduce spaghetti
             datasets.push({
-                label: isScb ? "Snitt Marknaden (SCB)" : bank,
-                data: rates,
-                borderColor: bankColors[bank] || "hsl(" + (Math.random() * 360) + ", 70%, 60%)",
+                label: isScb ? "Snitt Marknaden (SCB)" : bank + (isBestBank ? ' (🥇 Bäst nu)' : ''),
+                data: rates.slice(startIndex),
+                borderColor: c,
                 backgroundColor: 'transparent',
-                borderWidth: isScb ? 2 : 2.5,
+                borderWidth: isScb ? 2 : (isMyBank ? 4 : 2),
                 borderDash: isScb ? [5, 5] : [],
                 tension: 0.1,
                 pointRadius: 0,
-                pointHoverRadius: 4,
+                pointHoverRadius: 5,
+                hidden: defaultHidden
             });
         }
 
@@ -1724,12 +1888,12 @@ const App = {
         }
 
         const ctx = canvas.getContext('2d');
-        const Chart = window.Chart; // Assuming Chart.js is globally available
+        const Chart = window.Chart;
 
         this._mortgageChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: db.months,
+                labels: slicedMonths,
                 datasets: datasets,
             },
             options: {
@@ -1742,7 +1906,7 @@ const App = {
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: { color: '#888', font: {family: "'JetBrains Mono', monospace", size: 10} }
+                        labels: { color: '#bbb', font: {family: "'Inter', sans-serif", size: 11}, usePointStyle: true }
                     },
                     tooltip: {
                         backgroundColor: '#1a1f2e',
@@ -1760,7 +1924,7 @@ const App = {
                 scales: {
                     x: {
                         grid: { color: 'transparent', drawBorder: false },
-                        ticks: { color: '#888', maxTicksLimit: 12 }
+                        ticks: { color: '#888', maxTicksLimit: 8 }
                     },
                     y: {
                         grid: { color: '#2e3a4e', drawBorder: false },
