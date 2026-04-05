@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="sv" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portföljoptimerare — Svenska Storbanker vs Effektiva Fronten</title>
+    <meta name="description" content="Jämför svenska storbankers modellportföljer mot den effektiva fronten. Optimera din portfölj med hänsyn till ISK och depåbeskattning.">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+    <!-- ═══════ HEADER ═══════ -->
+    <header class="header" id="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">PO</div>
+                <div>
+                    <div class="logo-text">PORTFÖLJOPTIMERARE</div>
+                    <div class="logo-sub">SVENSKA STORBANKER</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <button class="nav-btn active" data-view="frontier" id="nav-frontier">EFFEKTIV FRONT</button>
+            <button class="nav-btn" data-view="compare" id="nav-compare">JÄMFÖR BANKER</button>
+            <button class="nav-btn" data-view="tax" id="nav-tax">SKATTESIMULERING</button>
+        </div>
+
+        <div class="header-right">
+            <span id="data-status">Initierar...</span>
+            <button class="theme-toggle" id="theme-toggle" title="Växla tema">
+                <span class="icon" id="theme-icon">☀</span>
+                <span id="theme-label">LJUST</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ═══════ TICKER BAR ═══════ -->
+    <div class="ticker-bar" id="ticker-bar">
+        <div class="ticker-item"><span class="name">OMXS30</span> <span id="tick-omx">—</span></div>
+        <div class="ticker-item"><span class="name">S&P500</span> <span id="tick-sp">—</span></div>
+        <div class="ticker-item"><span class="name">MSCI EM</span> <span id="tick-em">—</span></div>
+        <div class="ticker-item"><span class="name">SWE 10Y</span> <span id="tick-bond">2.96%</span></div>
+        <div class="ticker-item"><span class="name">GULD</span> <span id="tick-gold">—</span></div>
+        <div class="ticker-item"><span class="name">ISK SKATT</span> <span>0.888%</span></div>
+        <div class="ticker-item"><span class="name">RF-RÄNTA</span> <span>3.00%</span></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         VIEW 1: EFFICIENT FRONTIER
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="main-grid view-section active" id="view-frontier">
+
+        <!-- LEFT: Bank Funds + User Portfolio -->
+        <div class="panel" id="panel-banks" style="overflow-y:auto;max-height:calc(100vh - 90px)">
+
+            <!-- BANK SELECTOR -->
+            <div class="panel-header">
+                <span class="panel-title">Bankfonder</span>
+                <span class="panel-badge" id="fund-count-badge">—</span>
+            </div>
+
+            <div class="bank-selector" id="bank-selector">
+                <button class="bank-btn active" data-bank="Handelsbanken" style="--current-bank-color:#005AA0">SHB</button>
+                <button class="bank-btn" data-bank="SEB" style="--current-bank-color:#41B06E">SEB</button>
+                <button class="bank-btn" data-bank="Nordea" style="--current-bank-color:#0000C1">NORDEA</button>
+                <button class="bank-btn" data-bank="Swedbank" style="--current-bank-color:#FF6600">SWED</button>
+            </div>
+
+            <!-- FUND LIST (dynamic) -->
+            <div id="fund-list-container"></div>
+
+            <!-- SELECTED FUND DETAIL -->
+            <div id="fund-detail-section" style="margin-top:8px">
+                <div class="panel-header">
+                    <span class="panel-title" id="fund-detail-title">Välj en fond</span>
+                    <span class="panel-badge" id="fund-type-badge">—</span>
+                </div>
+                <table class="data-table" id="fund-detail-table">
+                    <thead>
+                        <tr>
+                            <th>Tillgång</th>
+                            <th class="num">Vikt</th>
+                            <th class="num">Avk</th>
+                            <th class="num">Risk</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fund-detail-body"></tbody>
+                </table>
+                <div class="stats-row" id="fund-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Avkastning</div>
+                        <div class="stat-value" id="fund-return">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Risk</div>
+                        <div class="stat-value" id="fund-risk">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Sharpe</div>
+                        <div class="stat-value sm" id="fund-sharpe">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avgift</div>
+                        <div class="stat-value sm negative" id="fund-fee">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+
+            <!-- USER PORTFOLIO -->
+            <div class="panel-header">
+                <span class="panel-title">Min Portfölj</span>
+                <span class="panel-badge" id="user-portfolio-badge">0 POSITIONER</span>
+            </div>
+
+            <div class="tax-toggle" id="user-tax-toggle">
+                <button class="tax-btn active" data-tax="ISK">ISK</button>
+                <button class="tax-btn" data-tax="DEPA">DEPÅ</button>
+            </div>
+
+            <div class="portfolio-input-section" id="portfolio-inputs">
+                <div class="position-row-header" id="pos-row-header">
+                    <span>Tillgångsslag</span>
+                    <span>Värde (kr)</span>
+                    <span class="col-cost-basis">Ingång (kr)</span>
+                    <span title="Lås = Behåll positionen vid optimering">Lås</span>
+                    <span></span>
+                </div>
+            </div>
+
+            <button class="btn-add" id="btn-add-position">+ Lägg till position</button>
+
+            <!-- OPTIMIZE TARGET -->
+            <div id="target-controls-wrapper" style="margin-top:8px; transition: opacity 0.3s ease;">
+                <div class="panel-header">
+                    <span class="panel-title">Optimeringsmål</span>
+                </div>
+                <div class="target-selector" id="target-selector">
+                    <button class="target-btn active" data-target="sharpe" title="Teoretiska toppen på effektiva fronten">MAX SHARPE</button>
+                    <button class="target-btn" data-target="same_risk" title="Samma risk som din inmatade portfölj">SAMMA RISK</button>
+                    <button class="target-btn" data-target="fund_risk" title="Samma risk som bankfonden du klickat på">FONDENS RISK</button>
+                    <button class="target-btn" data-target="fund_copy" title="Bygg billig ETF-kopia av bankfonden">KOPIERA FOND</button>
+                </div>
+            </div>
+
+            <!-- HRP TARGET INFO (Visible only in HRP mode) -->
+            <div id="hrp-target-info" style="display:none; margin-top:8px; padding:8px; background:rgba(255,255,255,0.03); border:1px dashed var(--border); border-radius:var(--radius); font-size:10px; color:var(--text-secondary); text-align:center;">
+                HRP-motorn bygger automatiskt målet baserat på <span style="color:var(--text-primary);">Inverse Volatility</span> (Risk Parity). Inställningar döljs för att förhindra manuell överstyrning.
+            </div>
+
+            <div style="display:flex;gap:6px;margin-top:8px">
+                <button class="btn-action" id="btn-optimize" style="flex:1">⚡ OPTIMERA</button>
+                <button class="btn-action" id="btn-clear-portfolio" style="flex:0.5;border-color:var(--negative);color:var(--negative);background:rgba(255,61,113,0.06)">RENSA</button>
+            </div>
+        </div>
+
+        <!-- RIGHT: Efficient Frontier Chart + Recommendations -->
+        <div class="panel" style="display:flex;flex-direction:column">
+            <div class="panel-header" style="flex-direction:column; align-items:stretch; gap:12px; height:auto; padding-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                    <span class="panel-title" id="chart-main-title">Strukturell Analys — Markowitz Mean-Variance</span>
+                    <div style="display:flex;gap:6px">
+                        <span class="panel-badge" id="frontier-data-badge">LADDAR</span>
+                    </div>
+                </div>
+                
+                <!-- DUAL ENGINE TOGGLE -->
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+                    <div class="engine-toggle-wrapper" style="flex:0 0 auto;">
+                        <div class="engine-toggle" id="engine-toggle">
+                            <button class="engine-btn active" data-engine="markowitz">
+                                <span class="engine-icon">📈</span> Klassisk (Markowitz)
+                            </button>
+                            <button class="engine-btn" data-engine="hrp">
+                                <span class="engine-icon">🧠</span> Modern AI (HRP)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="engine-description" style="flex:1; font-size:11px; color:var(--text-secondary); line-height:1.4; background:var(--bg-input); padding:8px 12px; border-radius:var(--radius); border:1px solid var(--border);">
+                        <strong>Bankernas Standardmodell:</strong> Optimerar uppskattad avkastning mot volatilitet. Historiska data används för att rita ut den högsta möjliga kurvan (Effektiva Fronten).
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container" style="flex: 0 1 400px; min-height: 250px; max-height: 400px; margin-bottom: 12px;">
+                <canvas id="frontier-chart"></canvas>
+            </div>
+
+            <!-- Recommendations (shown after optimization) -->
+            <div id="recommendations-panel" style="display:none;margin-top:10px;flex:1;overflow-y:auto">
+                <div class="panel-header">
+                    <span class="panel-title">Simulerad Rebalansering (Historiskt baserad)</span>
+                    <span class="panel-badge" id="rec-tax-badge">ISK</span>
+                </div>
+
+                <!-- Summary -->
+                <div class="summary-grid" id="rec-summary">
+                    <div class="summary-card">
+                        <div class="label">Portföljvärde</div>
+                        <div class="value accent" id="rec-total-value">—</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="label">Belopp att omplacera</div>
+                        <div class="value" id="rec-net-reinvest" style="color:var(--cyan)">—</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="label">Skatteeffekt vid försäljning</div>
+                        <div class="value negative" id="rec-tax-impact">—</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="label">Skattedrag %</div>
+                        <div class="value" id="rec-tax-drag">—</div>
+                    </div>
+                </div>
+
+                <!-- Sell table -->
+                <div class="rec-section">
+                    <div class="rec-title"><span class="arrow sell">▼</span> SÄLJ</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tillgång</th>
+                                <th class="num">Nu</th>
+                                <th class="num">Mål</th>
+                                <th class="num">Belopp</th>
+                                <th class="num">Skatt</th>
+                                <th class="num">Netto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sell-table-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- Buy table -->
+                <div class="rec-section">
+                    <div class="rec-title"><span class="arrow buy">▲</span> KÖP</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tillgång</th>
+                                <th class="num">Nu</th>
+                                <th class="num">Mål</th>
+                                <th class="num">Belopp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="buy-table-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- Fee savings card -->
+                <div id="fee-savings-section" style="display:none;margin-top:10px">
+                    <div class="panel-header">
+                        <span class="panel-title">Avgiftsbesparing vs Bankfond</span>
+                    </div>
+                    <div class="fee-compare-grid">
+                        <div class="fee-compare-card">
+                            <div class="label">Bankfondens avgift</div>
+                            <div class="value negative" id="fee-bank">—</div>
+                        </div>
+                        <div class="fee-compare-card">
+                            <div class="label">Din uppskattade avgift</div>
+                            <div class="value positive" id="fee-user">~0.15%</div>
+                        </div>
+                        <div class="fee-compare-card">
+                            <div class="label">Besparing / år (SEK)</div>
+                            <div class="value accent" id="fee-annual-save">—</div>
+                        </div>
+                        <div class="fee-compare-card">
+                            <div class="label">Besparing 10 år (m. ränta)</div>
+                            <div class="value accent" id="fee-10y-save">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breakeven Time Machine -->
+                <div id="breakeven-panel" style="display:none; margin-top:16px; margin-bottom: 20px; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: var(--radius);">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         VIEW 2: COMPARE BANKS
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="main-grid view-section" id="view-compare" style="grid-template-columns:1fr">
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Jämför Bankfonder — Tillgångsallokering</span>
+                <span class="panel-badge">ALLA FONDSERIER</span>
+            </div>
+
+            <!-- Equity level filter -->
+            <div class="panel-header" style="border:none;padding-bottom:4px;margin-bottom:4px">
+                <span style="font-size:10px;color:var(--text-muted)">FILTRERA PÅ AKTIENIVÅ</span>
+            </div>
+            <div class="profile-selector" id="compare-equity-selector">
+                <button class="profile-btn" data-equity="25">~25%</button>
+                <button class="profile-btn active" data-equity="50">~50%</button>
+                <button class="profile-btn" data-equity="75">~75%</button>
+                <button class="profile-btn" data-equity="100">~100%</button>
+            </div>
+
+            <div class="alloc-chart-wrap">
+                <canvas id="allocation-chart"></canvas>
+            </div>
+
+            <div style="margin-top:16px">
+                <table class="data-table" id="compare-table">
+                    <thead id="compare-thead"></thead>
+                    <tbody id="compare-tbody"></tbody>
+                </table>
+            </div>
+
+            <div id="compare-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:12px"></div>
+
+            <div style="margin-top:24px;padding:12px;background:var(--bg-input);border-radius:var(--radius);border-left:3px solid var(--accent);font-size:11px;color:#8B9BB4;line-height:1.5">
+                <strong style="color:var(--text-primary);letter-spacing:1px">VIKTIG INFORMATION OM JÄMFÖRELSEN:</strong><br>
+                Graferna baseras på fondernas strukturella riktvikter enligt deras faktablad och mandat, och kan avvika från fondens dagliga faktiska allokering. Nyckeltalen i botten (Avkastning, Risk & Sharpe) visar inte historisk fondutveckling, utan är en <strong>strukturell simulering</strong> baserad på de underliggande tillgångsslagen ("äpplen med äpplen"). Detta görs för att möjliggöra en objektiv jämförelse av bankernas strukturella allokeringsteori, rensad från förvaltarens eventuella tur, otur eller olika lanseringsdatum.
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         VIEW 3: TAX SIMULATION
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="main-grid view-section" id="view-tax" style="grid-template-columns:320px 1fr">
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Simuleringsinställningar</span>
+            </div>
+            <div class="sim-controls" style="flex-direction:column;align-items:stretch">
+                <div>
+                    <label>Startkapital (SEK)</label>
+                    <input type="number" id="sim-capital" value="500000" step="50000" min="10000" style="width:100%;margin-top:4px">
+                </div>
+                <div style="margin-top:8px">
+                    <label>Årlig avkastning: <span id="sim-return-display">7.0%</span></label>
+                    <input type="range" id="sim-return" min="2" max="15" value="7" step="0.5" style="width:100%;margin-top:4px">
+                </div>
+                <div style="margin-top:8px">
+                    <label>Utdelning: <span id="sim-div-display">2.0%</span></label>
+                    <input type="range" id="sim-dividend" min="0" max="5" value="2" step="0.5" style="width:100%;margin-top:4px">
+                </div>
+                <div style="margin-top:8px">
+                    <label>Tidshorisont: <span id="sim-years-display">20 år</span></label>
+                    <input type="range" id="sim-years" min="1" max="40" value="20" step="1" style="width:100%;margin-top:4px">
+                </div>
+                <div style="margin-top:8px">
+                    <label>Årlig ombalansering: <span id="sim-turnover-display">20%</span></label>
+                    <input type="range" id="sim-turnover" min="0" max="100" value="20" step="5" style="width:100%;margin-top:4px">
+                </div>
+                <div style="margin-top:12px;background:rgba(255,255,255,0.03);padding:8px;border-radius:4px">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                        <input type="checkbox" id="sim-liquidate" checked>
+                        <span style="font-size:11px">Sälj allt och skatta ut sista året (Likvidation)</span>
+                    </label>
+                </div>
+            </div>
+            <button class="btn-action" id="btn-simulate" style="width:100%;margin-top:12px">📊 SIMULERA</button>
+
+            <div style="margin-top:16px">
+                <div class="panel-header"><span class="panel-title">ISK SKATTEREGLER 2025</span></div>
+                <table class="data-table">
+                    <tbody>
+                        <tr><td>Statslåneränta</td><td class="num">1.96%</td></tr>
+                        <tr><td>Schablonränta</td><td class="num">2.96%</td></tr>
+                        <tr><td>Skattefri grundnivå</td><td class="num">150 000 kr</td></tr>
+                        <tr><td>Effektiv skattesats</td><td class="num">0.888%</td></tr>
+                        <tr><td>Kapitalvinstskatt</td><td class="num positive">0%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top:12px">
+                <div class="panel-header"><span class="panel-title">DEPÅ SKATTEREGLER</span></div>
+                <table class="data-table">
+                    <tbody>
+                        <tr><td>Kapitalvinstskatt</td><td class="num negative">30%</td></tr>
+                        <tr><td>Utdelningsskatt</td><td class="num negative">30%</td></tr>
+                        <tr><td>Schablonskatt</td><td class="num positive">Ingen</td></tr>
+                        <tr><td>Rebalansering</td><td class="num negative">Utlöser skatt</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel" style="display:flex;flex-direction:column">
+            <div class="panel-header">
+                <span class="panel-title">ISK vs DEPÅ — Tillväxtsimulering</span>
+                <span class="panel-badge" id="sim-period-badge">20 ÅR</span>
+            </div>
+            <div class="chart-container" style="flex:1;min-height:300px">
+                <canvas id="tax-chart"></canvas>
+            </div>
+            <div class="sim-result-grid" id="sim-results">
+                <div class="sim-result-card isk-highlight">
+                    <div class="label">ISK Slutvärde</div>
+                    <div class="value accent" id="sim-isk-final">—</div>
+                </div>
+                <div class="sim-result-card depa-highlight">
+                    <div class="label">Depå Slutvärde</div>
+                    <div class="value" id="sim-depa-final" style="color:#ff6633">—</div>
+                </div>
+                <div class="sim-result-card">
+                    <div class="label">ISK Fördel</div>
+                    <div class="value positive" id="sim-advantage">—</div>
+                </div>
+                <div class="sim-result-card">
+                    <div class="label">Total skatt ISK</div>
+                    <div class="value" id="sim-isk-tax">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ SCRIPTS ═══════ -->
+    <script src="js/data.js"></script>
+    <script src="js/matrix.js"></script>
+    <script src="js/yahoo.js"></script>
+    <script src="js/optimizer.js"></script>
+    <script src="js/tax.js"></script>
+    <script src="js/recommendations.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>
