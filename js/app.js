@@ -780,6 +780,11 @@ const App = {
         if (viewName === 'mortgage' && !this._mortgageInit) {
             this.initMortgageTab();
         }
+        
+        // Lazy-init savings tab
+        if (viewName === 'savings' && !this._savingsInit) {
+            this.initSavingsTab();
+        }
     },
 
     /* ═══════ MORTGAGE TAB ═══════ */
@@ -1339,6 +1344,127 @@ const App = {
         document.getElementById('sim-liquidate').addEventListener('change', () => this.runTaxSimulation());
         document.getElementById('sim-capital').addEventListener('change', () => this.runTaxSimulation());
     },
+
+    /* ═══════ SAVINGS TAB ═══════ */
+    _savingsInit: false,
+
+    initSavingsTab() {
+        if (!window.SAVINGS_ACCOUNTS) {
+            console.error('Savings data not loaded.');
+            return;
+        }
+        
+        // Populate the dropdown with Big Banks
+        const bankSelect = document.getElementById('savings-current-bank');
+        const bigBanks = window.SAVINGS_ACCOUNTS.filter(a => a.isBigBank);
+        
+        bankSelect.innerHTML = bigBanks.map(b => 
+            `<option value="${b.id}">${b.name} — ${b.rate.toFixed(2)}%</option>`
+        ).join('');
+
+        // Bind events
+        document.getElementById('savings-amount').addEventListener('input', (e) => {
+            const v = parseInt(e.target.value);
+            document.getElementById('savings-amount-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+            this.updateSavingsView();
+        });
+
+        document.getElementById('savings-current-bank').addEventListener('change', () => {
+            this.updateSavingsView();
+        });
+
+        this.updateSavingsView();
+        this._savingsInit = true;
+    },
+
+    updateSavingsView() {
+        const capital = parseInt(document.getElementById('savings-amount').value);
+        const selectedId = document.getElementById('savings-current-bank').value;
+        const currentBank = window.SAVINGS_ACCOUNTS.find(a => a.id === selectedId);
+        
+        // Find best alternative
+        const alternatives = window.SAVINGS_ACCOUNTS
+                                   .filter(a => !a.isBigBank && a.guarantee)
+                                   .sort((a, b) => b.rate - a.rate);
+        
+        const bestBank = alternatives[0];
+        
+        // Calculate diff
+        const currentYield = capital * (currentBank.rate / 100);
+        const currentYieldAfterTax = currentYield * 0.7; // 30% tax
+        
+        const bestYield = capital * (bestBank.rate / 100);
+        const bestYieldAfterTax = bestYield * 0.7;
+        
+        const extraYield = bestYieldAfterTax - currentYieldAfterTax;
+        
+        document.getElementById('savings-extra-yield').textContent = '+' + Math.round(extraYield).toLocaleString('sv-SE') + ' kr/år';
+        document.getElementById('savings-action-text').innerHTML = `
+            Genom att flytta ditt buffertsparande från <strong>${currentBank.name}</strong> (${currentBank.rate.toFixed(2)}%) till <strong>${bestBank.name}</strong> (${bestBank.rate.toFixed(2)}%) får du <strong>${Math.round(extraYield).toLocaleString('sv-SE')} kr mer i plånboken varje år</strong> (räknat efter 30% kapitalskatt), helt riskfritt tack vare den statliga insättningsgarantin.
+        `;
+        
+        // Render table
+        this.renderSavingsTable(currentBank.id, capital);
+    },
+    
+    renderSavingsTable(currentBankId, capital) {
+        const container = document.getElementById('savings-table-container');
+        
+        // Sort best first
+        const sorted = [...window.SAVINGS_ACCOUNTS].sort((a, b) => b.rate - a.rate);
+        
+        let html = `
+            <table class="data-table" style="width:100%; text-align:left;">
+                <thead>
+                    <tr>
+                        <th style="padding-bottom:8px">Aktör</th>
+                        <th style="padding-bottom:8px">Ränta</th>
+                        <th style="padding-bottom:8px; text-align:right">Tjänar/År (efter skatt)</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        const currentBank = window.SAVINGS_ACCOUNTS.find(a => a.id === currentBankId);
+        const currentYieldAfterTax = capital * (currentBank.rate / 100) * 0.7;
+
+        for (const bank of sorted) {
+            const isCurrent = bank.id === currentBankId;
+            const yieldAfterTax = capital * (bank.rate / 100) * 0.7;
+            const extra = yieldAfterTax - currentYieldAfterTax;
+            
+            // Format diff
+            let extraStr = '—';
+            let color = 'var(--text-muted)';
+            if (extra > 0) {
+                extraStr = '+' + Math.round(extra).toLocaleString('sv-SE') + ' kr';
+                color = 'var(--positive)';
+            } else if (extra < 0) {
+                extraStr = Math.round(extra).toLocaleString('sv-SE') + ' kr';
+                color = 'var(--negative)';
+            } else {
+                extraStr = 'Din valda bank';
+            }
+
+            html += `
+                <tr style="${isCurrent ? 'background:var(--bg-panel-hover)' : ''}">
+                    <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight);">
+                        <span style="font-weight:600; color:var(--text-primary)">${bank.name}</span>
+                        ${isCurrent ? '<span style="font-size:9px; margin-left:6px; background:var(--border-highlight); padding:2px 4px; border-radius:3px">VALD</span>' : ''}
+                    </td>
+                    <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight); font-weight:700; color:var(--accent)">
+                        ${bank.rate.toFixed(2)}%
+                    </td>
+                    <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight); text-align:right; font-weight:600; color:${color}">
+                        ${extraStr}
+                    </td>
+                </tr>
+            `;
+        }
+        
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());

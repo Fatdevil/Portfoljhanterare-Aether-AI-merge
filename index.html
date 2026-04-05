@@ -27,6 +27,7 @@
             <button class="nav-btn" data-view="compare" id="nav-compare">JÄMFÖR BANKER</button>
             <button class="nav-btn" data-view="tax" id="nav-tax">SKATTESIMULERING</button>
             <button class="nav-btn" data-view="mortgage" id="nav-mortgage">🏠 BOLÅN</button>
+            <button class="nav-btn" data-view="savings" id="nav-savings">🐖 JÄMFÖR KONTON</button>
         </div>
 
         <div class="header-right">
@@ -562,8 +563,79 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         VIEW 5: SAVINGS ACCOUNTS
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="view-section" id="view-savings">
+        <div class="main-grid" style="grid-template-columns: 380px 1fr">
+
+            <!-- LEFT: Input Panel -->
+            <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
+                <div class="panel-header">
+                    <h2>🐖 DIN SPARTBUFFERT</h2>
+                    <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Jämför avkastning på buffertsparande</p>
+                </div>
+
+                <!-- Savings Input -->
+                <div class="panel-header" style="margin-top:16px">
+                    <span class="panel-title">Sparkapital</span>
+                </div>
+                <div class="panel-section" style="padding-top:0">
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+                        <input type="range" id="savings-amount" min="10000" max="2000000" step="10000" value="200000" style="flex:1">
+                        <span id="savings-amount-label" style="font-weight:700;font-size:1.1rem;min-width:110px;text-align:right;color:var(--accent)">200 000 kr</span>
+                    </div>
+                </div>
+
+                <!-- Current Bank -->
+                <div class="panel-header" style="margin-top:16px">
+                    <span class="panel-title">Din nuvarande bank</span>
+                </div>
+                <div class="panel-section" style="padding-top:0">
+                    <select id="savings-current-bank" style="width:100%; background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:8px;font-size:0.9rem;font-family:'JetBrains Mono',monospace;margin-top:8px;">
+                        <!-- Populated by JS -->
+                    </select>
+                    <p style="color:var(--text-muted);font-size:0.75rem;margin:8px 0 0">Systemet jämför denna ränta med de bästa på marknaden.</p>
+                </div>
+                
+                <!-- Result Summary Summary -->
+                <div class="panel-header" style="margin-top:16px">
+                    <span class="panel-title">Möjlig värdeökning (1 år)</span>
+                </div>
+                <div class="panel-section" id="savings-result-summary" style="padding-top:0">
+                    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px">
+                        <div class="stat-card">
+                            <div class="stat-label">Extra avkastning (efter skatt)</div>
+                            <div class="stat-value positive" id="savings-extra-yield" style="font-size:1.4rem">—</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:16px; padding:12px; background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:6px;">
+                        <span id="savings-action-text" style="font-size:0.85rem; color:var(--text-primary);">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Compare List -->
+            <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
+                <div class="panel-header" style="padding-bottom:0">
+                    <h2>JÄMFÖR KONTON — MED INSÄTTNINGSGARANTI</h2>
+                    <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Endast konton med svensk insättningsgaranti upp till 1 050 000 kr visas.</p>
+                    
+                    <div style="display:flex;gap:16px;margin-top:16px;border-bottom:1px solid var(--border-color)">
+                        <button class="nav-btn active" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">🏆 Topplista</button>
+                    </div>
+                </div>
+
+                <div id="savings-table-container" style="margin-top:16px">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══════ SCRIPTS ═══════ -->
     <script src="js/data.js"></script>
+    <script src="js/savings_data.js"></script>
     <script src="js/matrix.js"></script>
     <script src="js/yahoo.js"></script>
     <script src="js/optimizer.js"></script>
