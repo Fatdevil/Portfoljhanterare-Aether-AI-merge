@@ -1596,6 +1596,11 @@ const App = {
 
         document.getElementById('compare-mortgage-current-bank').addEventListener('change', () => {
             this.updateCompareMortgageView();
+            // Re-render chart and insights if history tab is active
+            const activeTabBtn = document.querySelector('#compare-mortgage-right-tabs .nav-btn.active');
+            if (activeTabBtn && activeTabBtn.dataset.tab === 'history') {
+                this.renderMortgageHistoryChart();
+            }
         });
 
         // Bind right panel tabs
@@ -1742,37 +1747,74 @@ const App = {
         
         // Analyze recent momentum (last 6 months)
         let earlyMoverStatus = "";
+        let hasSixMonthsData = false;
+        
         if (months.length > 6) {
             const sixMonthsAgoIndex = months.length - 7;
             const myRecentDrop = (myBankRates[sixMonthsAgoIndex] || 0) - (myBankRates[months.length - 1] || 0);
             const scbRecentDrop = (scb[sixMonthsAgoIndex] || 0) - (scb[months.length - 1] || 0);
             
-            if (myRecentDrop > scbRecentDrop + 0.1) {
-                earlyMoverStatus = `🔥 <b>Aggressiva prissänkningar:</b> De senaste 6 månaderna har ${myBank} sänkt snitträntan snabbare än marknaden i övrigt.`;
-            } else if (scbRecentDrop > myRecentDrop + 0.1) {
-                earlyMoverStatus = `⚠️ <b>Segfotade sänkningar:</b> De senaste 6 månaderna har ${myBank} varit långsammare än snittet på att föra vidare prissänkningar till kunderna.`;
-            } else {
-                earlyMoverStatus = `⚖️ <b>Följer strömmen:</b> På kort sikt (senaste 6 mån) har ${myBank} följt de generella marknadssänkningarna nästan exakt på decimalen.`;
+            if (myBankRates[sixMonthsAgoIndex] !== null && myBankRates[months.length - 1] !== null) {
+                hasSixMonthsData = true;
+                if (myRecentDrop > scbRecentDrop + 0.1) {
+                    earlyMoverStatus = `🔥 <b>Stark nedåttrend:</b> Senaste halvåret har ${myBank} sänkt snitträntan snabbare än marknaden i övrigt.`;
+                } else if (scbRecentDrop > myRecentDrop + 0.1) {
+                    earlyMoverStatus = `⚠️ <b>Segfotade:</b> Senaste halvåret har ${myBank} varit långsammare än snittet på att föra vidare Riksbankens prissänkningar till kunderna.`;
+                } else {
+                    earlyMoverStatus = `⚖️ <b>Följer strömmen:</b> På kort sikt (senaste 6 mån) har ${myBank} följt marknadssänkningarna nästan exakt på decimalen.`;
+                }
+            }
+        }
+        
+        // Find best bank
+        let lowestRate = 99;
+        let bestBank = '';
+        for (const [b, rates] of Object.entries(currentData)) {
+            if (b === "SCB_Marknad") continue;
+            const lastVal = rates[rates.length - 1];
+            if (lastVal && lastVal < lowestRate) {
+                lowestRate = lastVal;
+                bestBank = b;
             }
         }
         
         let html = '';
-        if (count > 0) {
+        
+        // 1. My Bank Insight
+        if (count > 12) { // Need at least a year for a real average
             const avgDiff = (diffSum / count) * -1; // positive = better for customer
             
             if (avgDiff > 0.05) {
-                html += `<li>💰 <b>Vass historik:</b> I genomsnitt över de senaste 5 åren har ditt val av ${myBank} legat <b>${avgDiff.toFixed(2)}% under</b> marknadssnittet.</li>`;
+                html += `<li style="margin-bottom:6px;">💰 <b>Vass historik:</b> I genomsnitt har ditt val av ${myBank} legat <b>${avgDiff.toFixed(2)}% under</b> marknadssnittet historiskt.</li>`;
             } else if (avgDiff < -0.05) {
-                html += `<li>💸 <b>Dyrare än snittet:</b> Historiskt sett har ${myBank} haft en genomsnittlig ränta som varit <b>${Math.abs(avgDiff).toFixed(2)}% över</b> marknadssnittet. Förhandlingsläge!</li>`;
+                html += `<li style="margin-bottom:6px;">💸 <b>Kräver förhandling:</b> Historiskt sett har ${myBank} haft en genomsnittlig ränta som varit <b>${Math.abs(avgDiff).toFixed(2)}% över</b> marknadssnittet. Dags att ringa dem!</li>`;
             } else {
-                html += `<li>🎯 <b>Exakt på snittet:</b> Din bank (${myBank}) prispressar sällan branschen, utan lägger sig historiskt sett nästan exakt på genomsnittet för alla banker.</li>`;
-            }
-            
-            if (earlyMoverStatus) {
-                html += `<li>${earlyMoverStatus}</li>`;
+                html += `<li style="margin-bottom:6px;">🎯 <b>Medelvägen:</b> Din bank (${myBank}) prispressar sällan branschen, utan lägger sig historiskt sett nästan exakt på genomsnittet för alla banker.</li>`;
             }
         } else {
-            html += '<li>För kort historik för din valda bank för att bygga en tillförlitlig 5-års trend.</li>';
+            // Fallback for banks without much history (like ICA Banken or Länsförsäkringar)
+            const myCurrent = myBankRates[months.length - 1];
+            const scbCurrent = scb[months.length - 1];
+            if (myCurrent !== null && scbCurrent !== null) {
+                const curDiff = (scbCurrent - myCurrent).toFixed(2);
+                if (curDiff > 0) {
+                     html += `<li style="margin-bottom:6px;">📊 <b>Status just nu:</b> ${myBank} saknar tyvärr historiskt data innan 2026 i vårt system, men <b>just nu</b> ligger de ${curDiff}% under genomsnittet!</li>`;
+                } else {
+                     html += `<li style="margin-bottom:6px;">📊 <b>Dyr just nu:</b> ${myBank} saknar tyvärr äldre historiskt data, men just nu ligger de ${Math.abs(curDiff)}% <b>över</b> marknadssnittet. Ouch!</li>`;
+                }
+            } else {
+                html += `<li style="margin-bottom:6px;">📊 ${myBank} saknar öppen historik i tillräcklig mängd för att bygga en långsiktig trend.</li>`;
+            }
+        }
+        
+        // 2. Momentum Insight
+        if (hasSixMonthsData && earlyMoverStatus) {
+            html += `<li style="margin-bottom:6px;">${earlyMoverStatus}</li>`;
+        }
+        
+        // 3. Best Bank Insight
+        if (bestBank && bestBank !== myBank) {
+            html += `<li style="margin-bottom:6px;">🏆 <b>Bäst i klassen:</b> Kolla in <b>${bestBank}</b>! De har just nu den lägsta genomsnittsräntan av alla på ${lowestRate}%.</li>`;
         }
         
         insightsList.innerHTML = html;
