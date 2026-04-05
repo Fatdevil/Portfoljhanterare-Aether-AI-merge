@@ -1347,20 +1347,26 @@ const App = {
 
     /* ═══════ SAVINGS TAB ═══════ */
     _savingsInit: false,
+    _savingsActiveType: 'flexible',
 
     initSavingsTab() {
         if (!window.SAVINGS_ACCOUNTS) {
             console.error('Savings data not loaded.');
             return;
         }
-        
-        // Populate the dropdown with Big Banks
-        const bankSelect = document.getElementById('savings-current-bank');
-        const bigBanks = window.SAVINGS_ACCOUNTS.filter(a => a.isBigBank);
-        
-        bankSelect.innerHTML = bigBanks.map(b => 
-            `<option value="${b.id}">${b.name} — ${b.rate.toFixed(2)}%</option>`
-        ).join('');
+
+        // Bind type toggle
+        document.querySelectorAll('#savings-type-toggle .tax-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#savings-type-toggle .tax-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this._savingsActiveType = btn.dataset.type;
+                this.populateSavingsBankSelect();
+                this.updateSavingsView();
+            });
+        });
+
+        this.populateSavingsBankSelect();
 
         // Bind events
         document.getElementById('savings-amount').addEventListener('input', (e) => {
@@ -1377,14 +1383,39 @@ const App = {
         this._savingsInit = true;
     },
 
+    populateSavingsBankSelect() {
+        const bankSelect = document.getElementById('savings-current-bank');
+        
+        // Populate dropdown with all banks (both big and niche) that match the active type
+        // Put big banks first for UX
+        const relevantAccounts = window.SAVINGS_ACCOUNTS.filter(a => a.type === this._savingsActiveType);
+        const bigBanks = relevantAccounts.filter(a => a.isBigBank);
+        const nicheBanks = relevantAccounts.filter(a => !a.isBigBank);
+        
+        bankSelect.innerHTML = 
+            '<optgroup label="Storbanker (Vanligast)">' +
+            bigBanks.map(b => `<option value="${b.id}">${b.name} — ${b.rate.toFixed(2)}%</option>`).join('') +
+            '</optgroup>' +
+            '<optgroup label="Nischbanker">' +
+            nicheBanks.map(b => `<option value="${b.id}">${b.name} — ${b.rate.toFixed(2)}%</option>`).join('') +
+            '</optgroup>';
+    },
+
     updateSavingsView() {
         const capital = parseInt(document.getElementById('savings-amount').value);
-        const selectedId = document.getElementById('savings-current-bank').value;
-        const currentBank = window.SAVINGS_ACCOUNTS.find(a => a.id === selectedId);
+        let selectedId = document.getElementById('savings-current-bank').value;
+        const relevantAccounts = window.SAVINGS_ACCOUNTS.filter(a => a.type === this._savingsActiveType);
         
-        // Find best alternative
-        const alternatives = window.SAVINGS_ACCOUNTS
-                                   .filter(a => !a.isBigBank && a.guarantee)
+        let currentBank = relevantAccounts.find(a => a.id === selectedId);
+        if (!currentBank) {
+            // Fallback if type changed and previous ID no longer exists
+            currentBank = relevantAccounts[0];
+            document.getElementById('savings-current-bank').value = currentBank.id;
+        }
+        
+        // Find best alternative in this category
+        const alternatives = relevantAccounts
+                                   .filter(a => a.guarantee)
                                    .sort((a, b) => b.rate - a.rate);
         
         const bestBank = alternatives[0];
@@ -1404,14 +1435,14 @@ const App = {
         `;
         
         // Render table
-        this.renderSavingsTable(currentBank.id, capital);
+        this.renderSavingsTable(currentBank.id, capital, relevantAccounts);
     },
     
-    renderSavingsTable(currentBankId, capital) {
+    renderSavingsTable(currentBankId, capital, relevantAccounts) {
         const container = document.getElementById('savings-table-container');
         
         // Sort best first
-        const sorted = [...window.SAVINGS_ACCOUNTS].sort((a, b) => b.rate - a.rate);
+        const sorted = [...relevantAccounts].sort((a, b) => b.rate - a.rate);
         
         let html = `
             <table class="data-table" style="width:100%; text-align:left;">
@@ -1425,7 +1456,7 @@ const App = {
                 <tbody>
         `;
         
-        const currentBank = window.SAVINGS_ACCOUNTS.find(a => a.id === currentBankId);
+        const currentBank = relevantAccounts.find(a => a.id === currentBankId);
         const currentYieldAfterTax = capital * (currentBank.rate / 100) * 0.7;
 
         for (const bank of sorted) {
