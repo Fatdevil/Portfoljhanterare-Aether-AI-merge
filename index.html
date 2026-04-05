@@ -734,13 +734,23 @@
                 <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Snitträntan indikerar vad kunder i genomsnitt faktiskt fick prutat till sig. Listräntan är bankens "katalogpris".</p>
                 
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-bottom:1px solid var(--border-color)">
-                    <button class="nav-btn active" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">📊 Snittränta</button>
+                    <div id="compare-mortgage-right-tabs" style="display:flex;gap:16px;">
+                        <button class="nav-btn active" data-tab="list" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">📊 Snittränta</button>
+                        <button class="nav-btn" data-tab="history" style="background:transparent;border:none;color:var(--text-muted);padding:8px 0;cursor:pointer;border-bottom:2px solid transparent;font-weight:600;font-size:0.85rem;">📈 Historik (10 år)</button>
+                    </div>
                     <span id="rates-freshness-badge" style="font-size:0.7rem;padding:3px 10px;border-radius:12px;font-family:'JetBrains Mono',monospace;white-space:nowrap;">Laddar...</span>
                 </div>
             </div>
 
             <div id="compare-mortgage-table-container" style="margin-top:16px">
                 <!-- Populated by JS -->
+            </div>
+            
+            <div id="compare-mortgage-history-container" style="margin-top:16px; display:none;">
+                <p style="color:var(--text-muted);font-size:0.8rem;margin-bottom:12px;">Svenska genomsnittsräntor över tid (Källa: SCB & Bankernas egna rapporter). Klicka på en bank i teckenförklaringen för att dölja/visa.</p>
+                <div style="position:relative; height:400px; width:100%;">
+                    <canvas id="mortgage-history-chart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -749,6 +759,7 @@
     <script src="js/data.js"></script>
     <script src="js/savings_data.js"></script>
     <script src="js/mortgage_banks_data.js"></script>
+    <script src="js/mortgage_historical_data.js"></script>
     <script src="js/discount_curves.js"></script>
     <script src="js/matrix.js"></script>
     <script src="js/yahoo.js"></script>

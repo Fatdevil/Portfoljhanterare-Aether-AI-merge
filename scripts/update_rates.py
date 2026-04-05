@@ -366,6 +366,67 @@ def generate_mortgage_banks_data():
 
     print(f"[+] Sparade {len(banks)} poster till {MORTGAGE_BANKS_FILE}")
     print(f"    Source status: {source_status}")
+    
+    # ── Step 5: Update Historical DB ──
+    try:
+        update_historical_database(banks, scb_avg)
+    except Exception as e:
+        print(f"    ⚠️  Kunde inte uppdatera historik: {e}")
+
+
+def update_historical_database(banks, scb_avg):
+    """
+    Öppnar mortgage_historical_data.js, kollar om innevarande månad finns,
+    och om inte: lägger till snitträntor för bankerna + SCB marknad.
+    """
+    import re
+    from pathlib import Path
+    hist_file = Path(__file__).parent.parent / "js" / "mortgage_historical_data.js"
+    if not hist_file.exists():
+        return
+        
+    current_month_str = TODAY[:7] # YYYY-MM
+    content = hist_file.read_text(encoding="utf-8")
+    
+    # Extract JSON part
+    match = re.search(r'=\s*(\{.*\});?', content, re.DOTALL)
+    if not match:
+        return
+        
+    db = json.loads(match.group(1))
+    
+    months = db.get("months", [])
+    if months and months[-1] == current_month_str:
+        # Redan uppdaterad för denna månad
+        return
+        
+    print(f"[*] Uppdaterar historisk DB med ny månad: {current_month_str}")
+    months.append(current_month_str)
+    db["months"] = months
+    
+    for binding_key, bank_dict in db.get("data", {}).items():
+        # Lägg till SCB_Marknad om vi har ett nytt värde
+        scb_val = scb_avg.get(binding_key) if scb_avg else None
+        if "SCB_Marknad" in bank_dict:
+            bank_dict["SCB_Marknad"].append(scb_val)
+            
+        # Padda alla andra banker (eller fyll med aktuellt snitt)
+        for bank_name, arr in bank_dict.items():
+            if bank_name == "SCB_Marknad":
+                continue
+            
+            # Hitta dagsaktuellt snitt för banken + bindningen
+            entry = next((b for b in banks if b["name"] == bank_name and b["type"] == binding_key), None)
+            val = entry["avgRate"] if entry else None
+            arr.append(val)
+            
+    js_content = f"// AUTO-GENERATED FILE — Uppdateras månadsvis av update_rates.py\n" \
+                 f"// Innehåller historiska snitträntor per bank från 2015 framåt.\n" \
+                 f"window.MORTGAGE_HISTORY = {json.dumps(db, indent=4)};"
+                 
+    hist_file.write_text(js_content, encoding="utf-8")
+    print(f"    ✅ Lade till datapunkter. Historiken har nu {len(months)} månader.")
+
 
 
 def generate_savings_data():

@@ -1595,11 +1595,42 @@ const App = {
             this.updateCompareMortgageView();
         });
 
+        // Bind right panel tabs
+        document.querySelectorAll('#compare-mortgage-right-tabs .nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('#compare-mortgage-right-tabs .nav-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.color = 'var(--text-muted)';
+                    b.style.borderBottom = '2px solid transparent';
+                });
+                const target = e.currentTarget;
+                target.classList.add('active');
+                target.style.color = 'var(--text-primary)';
+                target.style.borderBottom = '2px solid var(--accent-primary)';
+                
+                const tab = target.dataset.tab;
+                if (tab === 'history') {
+                    document.getElementById('compare-mortgage-table-container').style.display = 'none';
+                    document.getElementById('compare-mortgage-history-container').style.display = 'block';
+                    this.renderMortgageHistoryChart();
+                } else {
+                    document.getElementById('compare-mortgage-history-container').style.display = 'none';
+                    document.getElementById('compare-mortgage-table-container').style.display = 'block';
+                }
+            });
+        });
+
         // Initial render
         this.updateLTV();
         this.updatePersonalRates();
         this.renderDiscountCurvesFreshness();
         this.updateCompareMortgageView();
+        
+        // Also ensure charting works initially if they start on history (unlikely, but safe)
+        if(document.querySelector('#compare-mortgage-right-tabs .active').dataset.tab === 'history'){
+             this.renderMortgageHistoryChart();
+        }
+
         this._compareMortgageInit = true;
     },
 
@@ -1644,6 +1675,103 @@ const App = {
             }
         }
         return 0;
+    },
+
+    // ── Render History Chart ──
+    renderMortgageHistoryChart() {
+        if (!window.MORTGAGE_HISTORY) return;
+        
+        const canvas = document.getElementById('mortgage-history-chart');
+        if (!canvas) return;
+        
+        const db = window.MORTGAGE_HISTORY;
+        const binding = this._compareMortgageActiveType;
+        const currentData = db.data[binding];
+        if (!currentData) return;
+
+        // Colors mapping
+        const bankColors = {
+            "SCB_Marknad": "rgba(255, 255, 255, 0.4)",
+            "SBAB": "#00ff88",
+            "Swedbank": "#ff9900",
+            "Handelsbanken": "#00aaff",
+            "SEB": "#00cc66",
+            "Nordea": "#0055ff",
+            "ICA Banken": "#ff3366",
+            "Skandiabanken": "#00ccff",
+            "Länsförsäkringar": "#ff0000"
+        };
+
+        const datasets = [];
+        
+        for (const [bank, rates] of Object.entries(currentData)) {
+            const isScb = bank === "SCB_Marknad";
+            datasets.push({
+                label: isScb ? "Snitt Marknaden (SCB)" : bank,
+                data: rates,
+                borderColor: bankColors[bank] || "hsl(" + (Math.random() * 360) + ", 70%, 60%)",
+                backgroundColor: 'transparent',
+                borderWidth: isScb ? 2 : 2.5,
+                borderDash: isScb ? [5, 5] : [],
+                tension: 0.1,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            });
+        }
+
+        if (this._mortgageChartInstance) {
+            this._mortgageChartInstance.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        const Chart = window.Chart; // Assuming Chart.js is globally available
+
+        this._mortgageChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: db.months,
+                datasets: datasets,
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#888', font: {family: "'JetBrains Mono', monospace", size: 10} }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a1f2e',
+                        titleColor: '#fff',
+                        bodyColor: '#00ff88',
+                        borderColor: '#2e3a4e',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'transparent', drawBorder: false },
+                        ticks: { color: '#888', maxTicksLimit: 12 }
+                    },
+                    y: {
+                        grid: { color: '#2e3a4e', drawBorder: false },
+                        ticks: {
+                            color: '#888',
+                            callback: function(value) { return value + '%'; }
+                        }
+                    }
+                }
+            }
+        });
     },
 
     // ── Personal Rate Cards ──
