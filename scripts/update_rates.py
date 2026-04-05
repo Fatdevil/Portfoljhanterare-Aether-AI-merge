@@ -405,6 +405,15 @@ def update_historical_database(banks, scb_avg):
     db["months"] = months
     
     for binding_key, bank_dict in db.get("data", {}).items():
+        # Längd på arrays innan vi fyller på för denna månad
+        expected_length = len(months) - 1 
+        
+        # Säkerställ att ALLA nuvarande banker har en array i DB
+        for b in banks:
+            if b["type"] == binding_key and b["name"] not in bank_dict:
+                # Fyll historiken med null för de månader de inte fanns med
+                bank_dict[b["name"]] = [None] * expected_length
+                
         # Lägg till SCB_Marknad om vi har ett nytt värde
         scb_val = scb_avg.get(binding_key) if scb_avg else None
         if "SCB_Marknad" in bank_dict:

@@ -901,6 +901,58 @@ body {
     margin-top: 10px;
 }
 
+/* ── Mortgage Binding Buttons (consistent sizing) ──────────────────── */
+.mortgage-bind-btn {
+    padding: 6px 14px !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.mortgage-bind-btn:hover {
+    border-color: var(--border-highlight) !important;
+    color: var(--text-primary) !important;
+}
+
+.mortgage-bind-btn.active {
+    border-color: var(--accent-primary) !important;
+    background: rgba(0, 229, 255, 0.08) !important;
+    color: var(--accent-primary) !important;
+    font-weight: 700 !important;
+}
+
+/* ── Mortgage Main Tabs ────────────────────────────────────────────── */
+.mortgage-tab-btn {
+    padding: 8px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.2s;
+}
+
+.mortgage-tab-btn:hover {
+    color: var(--text-primary);
+}
+
+.mortgage-tab-btn.active {
+    border-bottom-color: var(--accent-primary);
+    color: var(--accent-primary);
+    font-weight: 700;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .main-grid {

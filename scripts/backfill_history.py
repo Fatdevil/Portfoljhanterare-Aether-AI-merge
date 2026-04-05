@@ -115,28 +115,6 @@ def build_database():
         for m in months:
             arr.append(history[b_key]["SCB_Marknad"].get(m, None))
         final_db["data"][b_key]["SCB_Marknad"] = arr
-        
-        # Add a couple of initial mock bank curves if we don't have historical data.
-        # This gives the UI something to show per bank from 2015. 
-        # In real life, going forward, actual data will be appended.
-        # For historical visualization, we'll trace SbAB as SCB - 0.1%, Swedbank as SCB + 0.05%, Nordea as SCB.
-        sbab_arr = []
-        swedbank_arr = []
-        handelsbanken_arr = []
-        
-        for r in arr:
-            if r is not None:
-                sbab_arr.append(round(r - 0.10, 2))
-                swedbank_arr.append(round(r + 0.05, 2))
-                handelsbanken_arr.append(round(r - 0.02, 2))
-            else:
-                sbab_arr.append(None)
-                swedbank_arr.append(None)
-                handelsbanken_arr.append(None)
-                
-        final_db["data"][b_key]["SBAB"] = sbab_arr
-        final_db["data"][b_key]["Swedbank"] = swedbank_arr
-        final_db["data"][b_key]["Handelsbanken"] = handelsbanken_arr
     
     js_content = f"// AUTO-GENERATED FILE — Uppdateras månadsvis av update_rates.py\n" \
                  f"// Innehåller historiska snitträntor per bank från 2015 framåt.\n" \
