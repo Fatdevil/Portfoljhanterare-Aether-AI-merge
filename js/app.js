@@ -1884,6 +1884,155 @@ const App = {
         insightsList.innerHTML = html;
     },
 
+    // ── Generate Bank Profiles (cross-binding summary) ──
+    generateBankProfiles() {
+        const container = document.getElementById('bank-profiles-list');
+        if (!container || !window.MORTGAGE_HISTORY) return;
+        
+        const db = window.MORTGAGE_HISTORY;
+        const months = db.months;
+        const N = months.length;
+        
+        const bindingLabels = {
+            'variable': 'Rörligt',
+            'fixed_1y': '1 År',
+            'fixed_2y': '2 År',
+            'fixed_3y': '3 År',
+            'fixed_5y': '5 År'
+        };
+        
+        // Collect all bank names across all bindings
+        const allBankNames = new Set();
+        for (const [binding, bankData] of Object.entries(db.data)) {
+            for (const bankName of Object.keys(bankData)) {
+                if (bankName !== "SCB_Marknad") allBankNames.add(bankName);
+            }
+        }
+        
+        // For each bank, compute avg diff vs SCB for each binding type
+        const profiles = [];
+        
+        for (const bankName of allBankNames) {
+            const bindingResults = {};
+            let totalWeightedDiff = 0;
+            let totalWeight = 0;
+            
+            for (const [binding, bankData] of Object.entries(db.data)) {
+                const rates = bankData[bankName];
+                const scb = bankData["SCB_Marknad"];
+                if (!rates || !scb) continue;
+                
+                let diffSum = 0, count = 0;
+                for (let i = 0; i < N; i++) {
+                    if (rates[i] !== null && scb[i] !== null) {
+                        diffSum += rates[i] - scb[i];
+                        count++;
+                    }
+                }
+                
+                if (count >= 12) {
+                    const avgDiff = diffSum / count;
+                    bindingResults[binding] = {
+                        avgDiff: avgDiff,
+                        months: count,
+                        label: bindingLabels[binding] || binding
+                    };
+                    totalWeightedDiff += avgDiff;
+                    totalWeight++;
+                }
+            }
+            
+            if (totalWeight === 0) continue;
+            
+            // Find best and worst binding for this bank
+            const entries = Object.entries(bindingResults);
+            entries.sort((a, b) => a[1].avgDiff - b[1].avgDiff);
+            
+            const best = entries[0];
+            const worst = entries[entries.length - 1];
+            const overallAvg = totalWeightedDiff / totalWeight;
+            
+            profiles.push({
+                name: bankName,
+                overallAvg: overallAvg,
+                best: best,
+                worst: worst,
+                bindings: bindingResults,
+                bindingCount: totalWeight
+            });
+        }
+        
+        // Sort by overall average (cheapest first)
+        profiles.sort((a, b) => a.overallAvg - b.overallAvg);
+        
+        let html = '';
+        
+        for (const bank of profiles) {
+            const bestLabel = bank.best[1].label;
+            const bestDiff = bank.best[1].avgDiff;
+            const worstLabel = bank.worst[1].label;
+            const worstDiff = bank.worst[1].avgDiff;
+            
+            // Build the profile sentence
+            let sentences = [];
+            
+            // Sentence 1: Overall positioning
+            if (bank.overallAvg < -0.05) {
+                sentences.push(`Historisk prispressare – i snitt <b>${Math.abs(bank.overallAvg).toFixed(2)}% billigare</b> än marknaden sett över alla löptider.`);
+            } else if (bank.overallAvg > 0.05) {
+                sentences.push(`Historiskt <b>${bank.overallAvg.toFixed(2)}% dyrare</b> än snittet sett över alla löptider.`);
+            } else {
+                sentences.push(`Ligger historiskt nästan exakt på marknadssnittet sett över alla löptider.`);
+            }
+            
+            // Sentence 2: Best vs Worst binding (only if different)
+            if (bank.best[0] !== bank.worst[0]) {
+                const spread = worstDiff - bestDiff;
+                if (spread > 0.05) {
+                    // Describe the best
+                    let bestDesc = '';
+                    if (bestDiff < -0.03) {
+                        bestDesc = `billigast på <b>${bestLabel}</b> (${Math.abs(bestDiff).toFixed(2)}% under snitt)`;
+                    } else {
+                        bestDesc = `bäst på <b>${bestLabel}</b>`;
+                    }
+                    
+                    // Describe the worst
+                    let worstDesc = '';
+                    if (worstDiff > 0.03) {
+                        worstDesc = `dyrast på <b>${worstLabel}</b> (+${worstDiff.toFixed(2)}%)`;
+                    } else {
+                        worstDesc = `svagast på <b>${worstLabel}</b>`;
+                    }
+                    
+                    sentences.push(`${bestDesc}, men ${worstDesc}.`);
+                }
+            }
+            
+            // Sentence 3: Recommendation
+            if (bestDiff < -0.08) {
+                sentences.push(`Stark rekommendation om du vill binda på <b>${bestLabel}</b>.`);
+            } else if (bank.overallAvg > 0.08 && bank.bindingCount >= 4) {
+                sentences.push(`Överväg att jämföra med andra alternativ oavsett löptid.`);
+            }
+            
+            // Emoji based on overall ranking
+            const idx = profiles.indexOf(bank);
+            let emoji = '🏦';
+            if (idx === 0) emoji = '🥇';
+            else if (idx === 1) emoji = '🥈';
+            else if (idx === 2) emoji = '🥉';
+            else if (bank.overallAvg > 0.05) emoji = '💸';
+            else if (bank.overallAvg < -0.03) emoji = '💰';
+            
+            html += `<div style="margin-bottom:12px; padding:10px 12px; background:var(--bg-tertiary); border-radius:6px; border:1px solid var(--border-color);">
+                <div style="font-weight:700; color:var(--text-primary); margin-bottom:4px;">${emoji} ${bank.name}</div>
+                <div style="color:var(--text-muted);">${sentences.join(' ')}</div>
+            </div>`;
+        }
+        
+        container.innerHTML = html;
+    },
     // ── Render History Chart ──
     renderMortgageHistoryChart() {
         if (!window.MORTGAGE_HISTORY) return;
@@ -1912,6 +2061,7 @@ const App = {
         }
         
         this.generateMortgageInsights(db, currentData, binding);
+        this.generateBankProfiles();
 
         // Calculate slice index based on zoom
         const monthsCount = db.months.length;
