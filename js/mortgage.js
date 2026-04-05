@@ -10,14 +10,19 @@
 
 const MortgageEngine = {
 
-    // ── Rate binding types ──────────────────────────────────────────
+    // ── Primary binding types (all have FULL 20yr data from 2005) ────
     BINDING_TYPES: [
-        { id: 'variable',     label: 'Rörlig (3 mån)',  months: 3,   color: '#00d4ff' },
-        { id: 'fixed_1y',     label: 'Bunden 1 år',     months: 12,  color: '#00ff88' },
-        { id: 'fixed_2y',     label: 'Bunden 2 år',     months: 24,  color: '#ffaa00' },
-        { id: 'fixed_3y',     label: 'Bunden 3 år',     months: 36,  color: '#ff6600' },
-        { id: 'fixed_5y',     label: 'Bunden 3-5 år',   months: 60,  color: '#ff3366' },
-        { id: 'fixed_5y_plus', label: 'Bunden 5+ år',   months: 84,  color: '#aa33ff' },
+        { id: 'variable',      label: 'Rörlig (3 mån)',   months: 3,   color: '#00d4ff' },
+        { id: 'fixed_1y',      label: 'Bunden ≤1 år',     months: 12,  color: '#00ff88' },
+        { id: 'fixed_1to5y',   label: 'Bunden 1-5 år',    months: 36,  color: '#ff6600' },
+        { id: 'fixed_5y_plus', label: 'Bunden >5 år',     months: 84,  color: '#aa33ff' },
+    ],
+
+    // ── Detail types (partial data, for stats table only) ────────────
+    DETAIL_TYPES: [
+        { id: 'detail_1to2y',  label: 'Bunden 1-2 år',    months: 18,  color: '#66cc00', parent: 'fixed_1to5y' },
+        { id: 'detail_2to3y',  label: 'Bunden 2-3 år',    months: 30,  color: '#ffaa00', parent: 'fixed_1to5y' },
+        { id: 'detail_3to5y',  label: 'Bunden 3-5 år',    months: 48,  color: '#ff3366', parent: 'fixed_1to5y' },
     ],
 
     // ── State ───────────────────────────────────────────────────────
@@ -34,7 +39,8 @@ const MortgageEngine = {
             { code: "Motpartssektor", selection: { filter: "item", values: ["2c"] } },
             { code: "Avtal",          selection: { filter: "item", values: ["0100"] } },
             { code: "Rantebindningstid", selection: { filter: "item", values: [
-                "1.1.1", "1.1.2.1", "1.1.2.2.1.1", "1.1.2.2.1.2", "1.1.2.2.2", "1.1.2.3"
+                "1.1.1", "1.1.2.1", "1.1.2.2", "1.1.2.3",
+                "1.1.2.2.1.1", "1.1.2.2.1.2", "1.1.2.2.2"
             ]}}
         ],
         response: { format: "json" }
@@ -43,10 +49,11 @@ const MortgageEngine = {
     SCB_CODE_MAP: {
         '1.1.1':       'variable',
         '1.1.2.1':     'fixed_1y',
-        '1.1.2.2.1.1': 'fixed_2y',
-        '1.1.2.2.1.2': 'fixed_3y',
-        '1.1.2.2.2':   'fixed_5y',
+        '1.1.2.2':     'fixed_1to5y',
         '1.1.2.3':     'fixed_5y_plus',
+        '1.1.2.2.1.1': 'detail_1to2y',
+        '1.1.2.2.1.2': 'detail_2to3y',
+        '1.1.2.2.2':   'detail_3to5y',
     },
 
     // ── Data Loading ────────────────────────────────────────────────
@@ -350,24 +357,29 @@ const MortgageEngine = {
                 weights: { variable: 1.0 }
             },
             { 
-                name: '100% Bunden 3-5 år',
-                description: 'Maximal trygghet, men potentiellt dyrare',
-                weights: { fixed_5y: 1.0 }
+                name: '100% Bunden 1-5 år',
+                description: 'Medellång bindning, balanserad trygghet',
+                weights: { fixed_1to5y: 1.0 }
+            },
+            {
+                name: '100% Bunden >5 år',
+                description: 'Maximal trygghet, längst bindning',
+                weights: { fixed_5y_plus: 1.0 }
             },
             {
                 name: '50/50 Mix',
                 description: 'Klassisk mix av rörligt och bundet',
-                weights: { variable: 0.50, fixed_5y: 0.50 }
+                weights: { variable: 0.50, fixed_1to5y: 0.50 }
             },
             {
                 name: 'Trappa (33/33/33)',
                 description: 'Diversifierad räntebindning',
-                weights: { variable: 0.34, fixed_3y: 0.33, fixed_5y: 0.33 }
+                weights: { variable: 0.34, fixed_1to5y: 0.33, fixed_5y_plus: 0.33 }
             },
             {
                 name: '70/30 Rörlig-tung',
                 description: 'Satsar på att rörligt vinner long-term',
-                weights: { variable: 0.70, fixed_5y: 0.30 }
+                weights: { variable: 0.70, fixed_1to5y: 0.30 }
             },
         ];
     },
@@ -441,8 +453,16 @@ const MortgageEngine = {
      */
     getHistoricalStats() {
         const stats = {};
-        
+        // Build ordered list: primary types, then after 'fixed_1to5y' insert its detail children
+        const allTypes = [];
         for (const bt of this.BINDING_TYPES) {
+            allTypes.push(bt);
+            if (bt.id === 'fixed_1to5y') {
+                allTypes.push(...this.DETAIL_TYPES);
+            }
+        }
+        
+        for (const bt of allTypes) {
             const series = this.rateData[bt.id];
             if (!series) continue;
 

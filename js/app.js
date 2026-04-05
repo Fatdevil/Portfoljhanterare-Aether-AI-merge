@@ -784,7 +784,7 @@ const App = {
 
     /* ═══════ MORTGAGE TAB ═══════ */
     _mortgageInit: false,
-    _mortgageWeights: { variable: 0.50, fixed_5y: 0.50 },
+    _mortgageWeights: { variable: 0.50, fixed_1to5y: 0.50 },
     _mortHistChart: null,
     _mortBacktestChart: null,
 
@@ -927,18 +927,25 @@ const App = {
 
         const datasets = MortgageEngine.BINDING_TYPES
             .filter(bt => MortgageEngine.rateData[bt.id] && Object.keys(MortgageEngine.rateData[bt.id]).length > 50)
-            .map(bt => ({
-                label: bt.label,
-                data: months.map(m => MortgageEngine.getRateStrict(bt.id, m)),
-                borderColor: bt.color,
-                backgroundColor: bt.color + '15',
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-                tension: 0.3,
-                fill: false,
-                spanGaps: false,
-            }));
+            .map(bt => {
+                // Use NaN (not null) for missing data — Chart.js skips NaN properly
+                const data = months.map(m => {
+                    const series = MortgageEngine.rateData[bt.id];
+                    return (series && series[m] !== undefined) ? series[m] : NaN;
+                });
+                return {
+                    label: bt.label,
+                    data: data,
+                    borderColor: bt.color,
+                    backgroundColor: bt.color + '15',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: 0.2,
+                    fill: false,
+                    spanGaps: false,
+                };
+            });
 
         this._mortHistChart = new Chart(ctx, {
             type: 'line',
@@ -954,7 +961,10 @@ const App = {
                     },
                     tooltip: {
                         callbacks: {
-                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%`
+                            label: ctx => {
+                                const v = ctx.parsed.y;
+                                return (v !== null && !isNaN(v)) ? `${ctx.dataset.label}: ${v.toFixed(2)}%` : null;
+                            }
                         }
                     }
                 },
@@ -1086,6 +1096,7 @@ const App = {
     renderMortgageStatsTable() {
         const stats = MortgageEngine.getHistoricalStats();
         const tableEl = document.getElementById('mort-stats-table');
+        const allTypes = [...MortgageEngine.BINDING_TYPES, ...MortgageEngine.DETAIL_TYPES];
 
         tableEl.innerHTML = `
             <table class="mort-stats-table">
@@ -1096,20 +1107,23 @@ const App = {
                         <th>Snitt</th>
                         <th>Min</th>
                         <th>Max</th>
-                        <th>Datapunkter</th>
+                        <th>Data från</th>
+                        <th>Punkter</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${Object.entries(stats).map(([id, s]) => {
-                        const bt = MortgageEngine.BINDING_TYPES.find(b => b.id === id);
+                        const bt = allTypes.find(b => b.id === id);
+                        const isDetail = MortgageEngine.DETAIL_TYPES.some(d => d.id === id);
                         return `
-                            <tr>
-                                <td style="color:${bt?.color || 'inherit'};font-weight:600">${s.label}</td>
+                            <tr style="${isDetail ? 'opacity:0.7;font-size:0.72rem' : ''}">
+                                <td style="color:${bt?.color || 'inherit'};font-weight:600">${isDetail ? '  └ ' : ''}${s.label}</td>
                                 <td style="font-weight:700">${s.current.toFixed(2)}%</td>
                                 <td>${s.avg.toFixed(2)}%</td>
                                 <td style="color:var(--positive)">${s.min.toFixed(2)}%</td>
                                 <td style="color:var(--negative)">${s.max.toFixed(2)}%</td>
-                                <td style="color:var(--text-muted)">${s.dataPoints} mån</td>
+                                <td style="color:var(--text-muted)">${MortgageEngine.formatMonth(s.firstMonth)}</td>
+                                <td style="color:var(--text-muted)">${s.dataPoints}</td>
                             </tr>
                         `;
                     }).join('')}
