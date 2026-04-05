@@ -1626,6 +1626,9 @@ const App = {
                 document.querySelectorAll('.mortgage-tab-content').forEach(c => c.style.display = 'none');
                 document.getElementById('mtab-' + tab).style.display = 'block';
                 
+                // Anchor scroll to prevent vertical jump
+                document.getElementById('mortgage-main-tabs').scrollIntoView({ behavior: 'instant', block: 'nearest' });
+                
                 // Actions specific to each tab
                 if (tab === 'history') {
                     this.renderMortgageHistoryChart();
