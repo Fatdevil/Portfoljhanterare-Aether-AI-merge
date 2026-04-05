@@ -655,20 +655,20 @@
             <span id="rates-freshness-badge" style="font-size:0.7rem;padding:3px 10px;border-radius:12px;font-family:'JetBrains Mono',monospace;white-space:nowrap;">Laddar...</span>
         </div>
 
-        <!-- ── BINDING TYPE SELECTOR (always visible) ── -->
-        <div id="compare-mortgage-type-toggle" style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:16px; max-width:500px;">
-            <button class="mortgage-bind-btn active" data-type="variable" style="padding:10px 4px; border-radius:8px; border:2px solid var(--accent-primary); background:rgba(0,255,136,0.12); color:#00ff88; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">Rörligt<br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">(3 mån)</span></button>
-            <button class="mortgage-bind-btn" data-type="fixed_1y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">1 År</button>
-            <button class="mortgage-bind-btn" data-type="fixed_2y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">2 År</button>
-            <button class="mortgage-bind-btn" data-type="fixed_3y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">3 År</button>
-            <button class="mortgage-bind-btn" data-type="fixed_5y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">5 År</button>
+        <!-- ── 3 MAIN TABS ── -->
+        <div id="mortgage-main-tabs" style="display:flex; gap:0; border-bottom:2px solid var(--border-color); margin-bottom:12px;">
+            <button class="mortgage-tab-btn active" data-mtab="compare" style="padding:8px 20px; background:transparent; border:none; border-bottom:3px solid var(--accent-primary); color:var(--accent-primary); font-weight:700; font-size:0.85rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">📊 Jämför Räntor</button>
+            <button class="mortgage-tab-btn" data-mtab="personal" style="padding:8px 20px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">🎯 Personlig Ränta</button>
+            <button class="mortgage-tab-btn" data-mtab="history" style="padding:8px 20px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">📈 Historik & Analys</button>
         </div>
 
-        <!-- ── 3 MAIN TABS ── -->
-        <div id="mortgage-main-tabs" style="display:flex; gap:0; border-bottom:2px solid var(--border-color); margin-bottom:20px;">
-            <button class="mortgage-tab-btn active" data-mtab="compare" style="padding:10px 20px; background:transparent; border:none; border-bottom:3px solid var(--accent-primary); color:var(--accent-primary); font-weight:700; font-size:0.9rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">📊 Jämför Räntor</button>
-            <button class="mortgage-tab-btn" data-mtab="personal" style="padding:10px 20px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--text-muted); font-weight:600; font-size:0.9rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">🎯 Personlig Ränta</button>
-            <button class="mortgage-tab-btn" data-mtab="history" style="padding:10px 20px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--text-muted); font-weight:600; font-size:0.9rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">📈 Historik & Analys</button>
+        <!-- ── BINDING TYPE SELECTOR (below tabs) ── -->
+        <div id="compare-mortgage-type-toggle" style="display:flex; gap:6px; margin-bottom:16px;">
+            <button class="mortgage-bind-btn active" data-type="variable" style="padding:6px 14px; border-radius:6px; border:1px solid var(--accent-primary); background:rgba(0,255,136,0.12); color:#00ff88; font-weight:700; font-size:0.8rem; cursor:pointer; transition:all 0.2s;">Rörligt <span style="font-size:0.65rem;opacity:0.7">(3m)</span></button>
+            <button class="mortgage-bind-btn" data-type="fixed_1y" style="padding:6px 14px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.8rem; cursor:pointer; transition:all 0.2s;">1 År</button>
+            <button class="mortgage-bind-btn" data-type="fixed_2y" style="padding:6px 14px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.8rem; cursor:pointer; transition:all 0.2s;">2 År</button>
+            <button class="mortgage-bind-btn" data-type="fixed_3y" style="padding:6px 14px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.8rem; cursor:pointer; transition:all 0.2s;">3 År</button>
+            <button class="mortgage-bind-btn" data-type="fixed_5y" style="padding:6px 14px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.8rem; cursor:pointer; transition:all 0.2s;">5 År</button>
         </div>
 
         <!-- ═══════ TAB 1: JÄMFÖR RÄNTOR ═══════ -->

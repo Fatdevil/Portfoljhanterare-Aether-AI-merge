@@ -1564,13 +1564,13 @@ const App = {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('#compare-mortgage-type-toggle .mortgage-bind-btn').forEach(b => {
                     b.classList.remove('active');
-                    b.style.border = '2px solid var(--border-color)';
+                    b.style.border = '1px solid var(--border-color)';
                     b.style.background = 'var(--bg-tertiary)';
                     b.style.color = 'var(--text-muted)';
                     b.style.fontWeight = '600';
                 });
                 btn.classList.add('active');
-                btn.style.border = '2px solid var(--accent-primary)';
+                btn.style.border = '1px solid var(--accent-primary)';
                 btn.style.background = 'rgba(0,255,136,0.12)';
                 btn.style.color = '#00ff88';
                 btn.style.fontWeight = '700';
