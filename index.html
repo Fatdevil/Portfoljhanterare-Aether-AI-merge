@@ -26,6 +26,7 @@
             <button class="nav-btn active" data-view="frontier" id="nav-frontier">EFFEKTIV FRONT</button>
             <button class="nav-btn" data-view="compare" id="nav-compare">JÄMFÖR BANKER</button>
             <button class="nav-btn" data-view="tax" id="nav-tax">SKATTESIMULERING</button>
+            <button class="nav-btn" data-view="mortgage" id="nav-mortgage">🏠 BOLÅN</button>
         </div>
 
         <div class="header-right">
@@ -417,6 +418,117 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         VIEW 4: MORTGAGE RATE PORTFOLIO
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="view-section" id="view-mortgage">
+        <div class="main-grid" style="grid-template-columns: 380px 1fr">
+
+            <!-- LEFT: Input Panel -->
+            <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
+                <div class="panel-header">
+                    <h2>🏠 DIN RÄNTEPORTFÖLJ</h2>
+                    <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Simulera och jämför räntebindningsstrategier</p>
+                </div>
+
+                <!-- Loan Input -->
+                <div class="panel-section">
+                    <h3>Lånebelopp</h3>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+                        <input type="range" id="mort-loan" min="500000" max="10000000" step="100000" value="3000000" style="flex:1">
+                        <span id="mort-loan-label" style="font-weight:700;font-size:1.1rem;min-width:110px;text-align:right;color:var(--accent)">3 000 000 kr</span>
+                    </div>
+                </div>
+
+                <!-- Rate Mix Sliders -->
+                <div class="panel-section">
+                    <h3>Räntebindningsmix</h3>
+                    <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0 12px">Fördela ditt lån mellan olika bindningstider. Summan måste bli 100%.</p>
+                    <div id="mort-sliders"></div>
+                    <div style="text-align:center;margin-top:8px">
+                        <span id="mort-weight-total" style="font-weight:700;font-size:0.9rem">100%</span>
+                    </div>
+                </div>
+
+                <!-- Current Cost Summary -->
+                <div class="panel-section" id="mort-current-cost">
+                    <h3>💰 Månadskostnad idag</h3>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+                        <div class="stat-card">
+                            <div class="stat-label">Brutto/mån</div>
+                            <div class="stat-value" id="mort-gross">—</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Netto/mån (efter avdrag)</div>
+                            <div class="stat-value accent" id="mort-net" style="font-size:1.4rem">—</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Snitträntekostnad</div>
+                            <div class="stat-value" id="mort-eff-rate">—</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Ränteavdrag/mån</div>
+                            <div class="stat-value positive" id="mort-tax-save">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Strategies -->
+                <div class="panel-section">
+                    <h3>⚡ Snabbval</h3>
+                    <div id="mort-quick-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+                </div>
+
+                <!-- Scenario Analysis -->
+                <div class="panel-section">
+                    <h3>📊 Ränteförändring</h3>
+                    <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0 12px">Vad händer om Riksbanken ändrar räntan?</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+                        <button class="btn-scenario" data-change="-1">Räntan -1%</button>
+                        <button class="btn-scenario" data-change="-0.25">Räntan -0.25%</button>
+                        <button class="btn-scenario" data-change="+0.25">Räntan +0.25%</button>
+                        <button class="btn-scenario" data-change="+0.5">Räntan +0.5%</button>
+                        <button class="btn-scenario" data-change="+1">Räntan +1%</button>
+                        <button class="btn-scenario" data-change="+2">Räntan +2%</button>
+                    </div>
+                    <div id="mort-scenario-result" style="margin-top:12px;display:none"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Charts & Results -->
+            <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
+                <div class="panel-header">
+                    <h2>STRUKTURELL ANALYS — BOLÅNERÄNTOR SEDAN 2005</h2>
+                    <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Källa: SCB Finansmarknadsstatistik (FM5001)</p>
+                </div>
+
+                <!-- Historical Rate Chart -->
+                <div class="panel-section">
+                    <h3>📈 Historiska bolåneräntor</h3>
+                    <div style="height:350px;position:relative">
+                        <canvas id="mort-history-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Backtest Comparison -->
+                <div class="panel-section">
+                    <h3>🔬 Backtest — Vad hade du betalat?</h3>
+                    <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0">Jämför din strategi mot standardstrategier under de senaste 10 åren</p>
+                    <div id="mort-backtest-table" style="margin-top:12px"></div>
+                    <div style="height:300px;position:relative;margin-top:16px">
+                        <canvas id="mort-backtest-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Rate Stats Table -->
+                <div class="panel-section">
+                    <h3>📋 Räntestatistik — Alla bindningstider</h3>
+                    <div id="mort-stats-table" style="margin-top:12px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══════ SCRIPTS ═══════ -->
     <script src="js/data.js"></script>
     <script src="js/matrix.js"></script>
@@ -424,6 +536,7 @@
     <script src="js/optimizer.js"></script>
     <script src="js/tax.js"></script>
     <script src="js/recommendations.js"></script>
+    <script src="js/mortgage.js"></script>
     <script src="js/charts.js"></script>
     <script src="js/app.js"></script>
 

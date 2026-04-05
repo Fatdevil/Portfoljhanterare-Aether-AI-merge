@@ -1058,3 +1058,45 @@ body::after {
 .breakeven-progress-fill { height: 100%; background: var(--positive); border-radius: 3px; transition: width 1s ease-out; }
 .breakeven-progress-fill.warning { background: var(--negative); }
 .breakeven-marker { position: absolute; top: 0; width: 2px; height: 100%; background: var(--text-primary); transform: translateX(-50%); z-index: 2; }
+
+/* ── Mortgage Tab ────────────────────────────────────────────────── */
+.btn-scenario {
+    padding: 8px 6px; font-size: 0.72rem; font-weight: 600;
+    background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--text-secondary); border-radius: 6px; cursor: pointer;
+    transition: all 0.2s; font-family: var(--font-mono);
+}
+.btn-scenario:hover { border-color: var(--accent-primary); color: var(--accent-primary); background: rgba(0,229,255,0.08); }
+.btn-scenario.active { border-color: var(--accent-primary); color: var(--accent-primary); background: rgba(0,229,255,0.12); }
+
+.mort-slider-row {
+    display: grid; grid-template-columns: 120px 1fr 50px; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.mort-slider-row label { font-size: 0.78rem; font-weight: 500; }
+.mort-slider-row .mort-val { font-weight: 700; font-size: 0.85rem; text-align: right; font-family: var(--font-mono); }
+
+.mort-strategy-btn {
+    padding: 6px 12px; font-size: 0.72rem; font-weight: 600;
+    background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--text-secondary); border-radius: 20px; cursor: pointer;
+    transition: all 0.2s;
+}
+.mort-strategy-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+.mort-scenario-card {
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; font-size: 0.82rem; line-height: 1.6;
+}
+.mort-scenario-card .positive { color: var(--positive); }
+.mort-scenario-card .negative { color: var(--negative); }
+
+.mort-stats-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.mort-stats-table th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.5px; }
+.mort-stats-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); font-family: var(--font-mono); }
+.mort-stats-table tr:hover { background: var(--highlight-bg); }
+
+.mort-backtest-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.mort-backtest-table th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.68rem; }
+.mort-backtest-table td { padding: 8px; border-bottom: 1px solid var(--border); font-family: var(--font-mono); }
+.mort-backtest-table tr:hover { background: var(--highlight-bg); }
+.mort-backtest-table .winner { color: var(--positive); font-weight: 700; }

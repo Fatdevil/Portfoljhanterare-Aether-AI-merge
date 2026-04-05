@@ -775,6 +775,378 @@ const App = {
         document.querySelectorAll('.view-section').forEach(s =>
             s.classList.toggle('active', s.id === `view-${viewName}`));
         setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+
+        // Lazy-init mortgage tab
+        if (viewName === 'mortgage' && !this._mortgageInit) {
+            this.initMortgageTab();
+        }
+    },
+
+    /* ═══════ MORTGAGE TAB ═══════ */
+    _mortgageInit: false,
+    _mortgageWeights: { variable: 0.50, fixed_5y: 0.50 },
+    _mortHistChart: null,
+    _mortBacktestChart: null,
+
+    async initMortgageTab() {
+        try {
+            const statusEl = document.getElementById('data-status');
+            await MortgageEngine.loadData(statusEl);
+            this._mortgageInit = true;
+
+            this.renderMortgageSliders();
+            this.renderMortgageQuickBtns();
+            this.bindMortgageEvents();
+            this.updateMortgageCost();
+            this.renderMortgageHistoryChart();
+            this.runMortgageBacktest();
+            this.renderMortgageStatsTable();
+        } catch (e) {
+            console.error('Mortgage init failed:', e);
+            document.getElementById('data-status').textContent = 'Bolånedata kunde ej laddas';
+        }
+    },
+
+    renderMortgageSliders() {
+        const container = document.getElementById('mort-sliders');
+        const types = MortgageEngine.BINDING_TYPES;
+        const latest = MortgageEngine.getLatestRates();
+
+        container.innerHTML = types.map(bt => {
+            const w = Math.round((this._mortgageWeights[bt.id] || 0) * 100);
+            const rate = latest[bt.id];
+            const rateStr = rate !== null ? ` (${rate.toFixed(2)}%)` : '';
+            return `
+                <div class="mort-slider-row">
+                    <label style="color:${bt.color}">${bt.label}${rateStr}</label>
+                    <input type="range" min="0" max="100" step="5" value="${w}" data-binding="${bt.id}" class="mort-mix-slider">
+                    <span class="mort-val" data-val="${bt.id}" style="color:${bt.color}">${w}%</span>
+                </div>
+            `;
+        }).join('');
+    },
+
+    renderMortgageQuickBtns() {
+        const container = document.getElementById('mort-quick-btns');
+        const strategies = MortgageEngine.getStandardStrategies();
+        container.innerHTML = strategies.map(s =>
+            `<button class="mort-strategy-btn" data-strategy='${JSON.stringify(s.weights)}' title="${s.description}">${s.name}</button>`
+        ).join('');
+    },
+
+    bindMortgageEvents() {
+        // Loan slider
+        document.getElementById('mort-loan').addEventListener('input', (e) => {
+            const v = parseInt(e.target.value);
+            document.getElementById('mort-loan-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+            this.updateMortgageCost();
+        });
+
+        // Mix sliders
+        document.querySelectorAll('.mort-mix-slider').forEach(slider => {
+            slider.addEventListener('input', () => {
+                const id = slider.dataset.binding;
+                const val = parseInt(slider.value);
+                this._mortgageWeights[id] = val / 100;
+                document.querySelector(`[data-val="${id}"]`).textContent = val + '%';
+
+                const total = Object.values(this._mortgageWeights).reduce((s, v) => s + v, 0);
+                const totalEl = document.getElementById('mort-weight-total');
+                const pct = Math.round(total * 100);
+                totalEl.textContent = pct + '%';
+                totalEl.style.color = Math.abs(pct - 100) <= 1 ? 'var(--positive)' : 'var(--negative)';
+
+                this.updateMortgageCost();
+            });
+        });
+
+        // Quick strategy buttons
+        document.querySelectorAll('.mort-strategy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const weights = JSON.parse(btn.dataset.strategy);
+                // Reset all to 0
+                for (const bt of MortgageEngine.BINDING_TYPES) {
+                    this._mortgageWeights[bt.id] = weights[bt.id] || 0;
+                }
+                this.renderMortgageSliders();
+                this.bindMortgageMixSliders();
+                this.updateMortgageCost();
+                this.runMortgageBacktest();
+            });
+        });
+
+        // Scenario buttons
+        document.querySelectorAll('.btn-scenario').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-scenario').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const change = parseFloat(btn.dataset.change);
+                this.runMortgageScenario(change);
+            });
+        });
+    },
+
+    bindMortgageMixSliders() {
+        document.querySelectorAll('.mort-mix-slider').forEach(slider => {
+            slider.addEventListener('input', () => {
+                const id = slider.dataset.binding;
+                const val = parseInt(slider.value);
+                this._mortgageWeights[id] = val / 100;
+                document.querySelector(`[data-val="${id}"]`).textContent = val + '%';
+
+                const total = Object.values(this._mortgageWeights).reduce((s, v) => s + v, 0);
+                const totalEl = document.getElementById('mort-weight-total');
+                const pct = Math.round(total * 100);
+                totalEl.textContent = pct + '%';
+                totalEl.style.color = Math.abs(pct - 100) <= 1 ? 'var(--positive)' : 'var(--negative)';
+
+                this.updateMortgageCost();
+            });
+        });
+    },
+
+    updateMortgageCost() {
+        if (!MortgageEngine.isLoaded) return;
+        const loan = parseInt(document.getElementById('mort-loan').value);
+        const latest = MortgageEngine.getLatestRates();
+        const cost = MortgageEngine.calculateMonthlyCost(loan, this._mortgageWeights, latest.month);
+
+        document.getElementById('mort-gross').textContent = cost.grossCost.toLocaleString('sv-SE') + ' kr';
+        document.getElementById('mort-net').textContent = cost.netCost.toLocaleString('sv-SE') + ' kr';
+        document.getElementById('mort-eff-rate').textContent = cost.effectiveRate.toFixed(2) + '%';
+        document.getElementById('mort-tax-save').textContent = '-' + cost.taxSaving.toLocaleString('sv-SE') + ' kr';
+    },
+
+    renderMortgageHistoryChart() {
+        const ctx = document.getElementById('mort-history-chart');
+        if (this._mortHistChart) this._mortHistChart.destroy();
+
+        // Sample every 3rd month for readability
+        const months = MortgageEngine.months.filter((_, i) => i % 3 === 0);
+        const labels = months.map(m => MortgageEngine.formatMonth(m));
+
+        const datasets = MortgageEngine.BINDING_TYPES
+            .filter(bt => MortgageEngine.rateData[bt.id] && Object.keys(MortgageEngine.rateData[bt.id]).length > 50)
+            .map(bt => ({
+                label: bt.label,
+                data: months.map(m => MortgageEngine.getRate(bt.id, m)),
+                borderColor: bt.color,
+                backgroundColor: bt.color + '15',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.3,
+                fill: false,
+            }));
+
+        this._mortHistChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#aaa', font: { size: 11, family: 'JetBrains Mono' }, boxWidth: 14, padding: 12 },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}%`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#666', font: { size: 9 }, maxRotation: 45 },
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                    },
+                    y: {
+                        title: { display: true, text: 'Ränta (%)', color: '#888' },
+                        ticks: { color: '#888', callback: v => v.toFixed(1) + '%' },
+                        grid: { color: 'rgba(255,255,255,0.06)' },
+                    }
+                }
+            }
+        });
+    },
+
+    runMortgageBacktest() {
+        if (!MortgageEngine.isLoaded) return;
+        const loan = parseInt(document.getElementById('mort-loan').value);
+
+        // Find a good 10-year window
+        const endMonth = MortgageEngine.months[MortgageEngine.months.length - 1];
+        const endDate = MortgageEngine.parseMonth(endMonth);
+        const startDate = new Date(endDate);
+        startDate.setFullYear(startDate.getFullYear() - 10);
+        const startYear = startDate.getFullYear();
+        const startMo = String(startDate.getMonth() + 1).padStart(2, '0');
+        const startMonth = `${startYear}M${startMo}`;
+
+        // Ensure startMonth exists
+        const validStart = MortgageEngine.months.find(m => m >= startMonth) || MortgageEngine.months[0];
+
+        // Standard strategies + user's mix
+        const strategies = [
+            { name: 'Din mix', weights: { ...this._mortgageWeights } },
+            ...MortgageEngine.getStandardStrategies(),
+        ];
+
+        const comparison = MortgageEngine.compareStrategies(loan, strategies, validStart, endMonth);
+
+        // Render table
+        const tableEl = document.getElementById('mort-backtest-table');
+        tableEl.innerHTML = `
+            <table class="mort-backtest-table">
+                <thead>
+                    <tr>
+                        <th>Strategi</th>
+                        <th>Snittränta</th>
+                        <th>Total nettokostnad</th>
+                        <th>Besparing</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${comparison.map((r, i) => `
+                        <tr>
+                            <td style="font-weight:${r.name === 'Din mix' ? '700' : '400'};color:${r.name === 'Din mix' ? 'var(--accent-primary)' : 'inherit'}">${r.name}</td>
+                            <td>${r.result.avgRate.toFixed(2)}%</td>
+                            <td class="${i === 0 ? 'winner' : ''}">${r.result.totalPaidNet.toLocaleString('sv-SE')} kr</td>
+                            <td class="${r.savings > 0 ? 'positive' : ''}">${r.savings > 0 ? '+' + r.savings.toLocaleString('sv-SE') + ' kr' : '—'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <p style="color:var(--text-muted);font-size:0.7rem;margin-top:8px">Period: ${MortgageEngine.formatMonth(validStart)} → ${MortgageEngine.formatMonth(endMonth)} (${comparison[0]?.result?.numMonths || 0} månader)</p>
+        `;
+
+        // Render backtest chart (monthly cost over time for top 3 strategies)
+        this.renderMortgageBacktestChart(comparison.slice(0, 4), validStart, endMonth);
+    },
+
+    renderMortgageBacktestChart(strategies, start, end) {
+        const ctx = document.getElementById('mort-backtest-chart');
+        if (this._mortBacktestChart) this._mortBacktestChart.destroy();
+
+        const colors = ['#00e5ff', '#00ff88', '#ff6600', '#ff3366'];
+
+        // Sample every 6th month for readability
+        const allMonths = strategies[0]?.result?.monthlyHistory?.map(m => m.month) || [];
+        const sampleIdx = allMonths.filter((_, i) => i % 6 === 0).map(m => allMonths.indexOf(m));
+
+        const labels = sampleIdx.map(i => MortgageEngine.formatMonth(allMonths[i]));
+
+        const datasets = strategies.map((s, si) => ({
+            label: s.name,
+            data: sampleIdx.map(i => s.result.monthlyHistory[i]?.netCost || 0),
+            borderColor: colors[si],
+            backgroundColor: colors[si] + '15',
+            borderWidth: s.name === 'Din mix' ? 3 : 1.5,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false,
+        }));
+
+        this._mortBacktestChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#aaa', font: { size: 10, family: 'JetBrains Mono' }, boxWidth: 12, padding: 10 },
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString('sv-SE')} kr/mån`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#666', font: { size: 9 }, maxRotation: 45 },
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                    },
+                    y: {
+                        title: { display: true, text: 'Nettokostnad/mån (kr)', color: '#888' },
+                        ticks: { color: '#888', callback: v => (v/1000).toFixed(0) + 'k' },
+                        grid: { color: 'rgba(255,255,255,0.06)' },
+                    }
+                }
+            }
+        });
+    },
+
+    renderMortgageStatsTable() {
+        const stats = MortgageEngine.getHistoricalStats();
+        const tableEl = document.getElementById('mort-stats-table');
+
+        tableEl.innerHTML = `
+            <table class="mort-stats-table">
+                <thead>
+                    <tr>
+                        <th>Bindningstid</th>
+                        <th>Nu</th>
+                        <th>Snitt</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>Datapunkter</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.entries(stats).map(([id, s]) => {
+                        const bt = MortgageEngine.BINDING_TYPES.find(b => b.id === id);
+                        return `
+                            <tr>
+                                <td style="color:${bt?.color || 'inherit'};font-weight:600">${s.label}</td>
+                                <td style="font-weight:700">${s.current.toFixed(2)}%</td>
+                                <td>${s.avg.toFixed(2)}%</td>
+                                <td style="color:var(--positive)">${s.min.toFixed(2)}%</td>
+                                <td style="color:var(--negative)">${s.max.toFixed(2)}%</td>
+                                <td style="color:var(--text-muted)">${s.dataPoints} mån</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+    },
+
+    runMortgageScenario(changePercent) {
+        if (!MortgageEngine.isLoaded) return;
+        const loan = parseInt(document.getElementById('mort-loan').value);
+        const result = MortgageEngine.simulateRateChange(loan, this._mortgageWeights, changePercent);
+
+        const resultEl = document.getElementById('mort-scenario-result');
+        resultEl.style.display = 'block';
+
+        const isNeg = result.monthlyDiff > 0;
+        resultEl.innerHTML = `
+            <div class="mort-scenario-card">
+                <div style="font-weight:700;margin-bottom:8px">
+                    Om räntan ${changePercent > 0 ? 'höjs' : 'sänks'} med ${Math.abs(changePercent)}%:
+                </div>
+                <div>Ny snitträntekostnad: <strong>${result.newRate.toFixed(2)}%</strong> (från ${result.currentRate.toFixed(2)}%)</div>
+                <div>Ny nettokostnad/mån: <strong>${result.newMonthlyCost.toLocaleString('sv-SE')} kr</strong></div>
+                <div style="font-size:1.1rem;margin-top:8px">
+                    Skillnad: <span class="${isNeg ? 'negative' : 'positive'}" style="font-weight:700">
+                        ${result.monthlyDiff > 0 ? '+' : ''}${result.monthlyDiff.toLocaleString('sv-SE')} kr/mån
+                    </span>
+                    <span style="color:var(--text-muted)"> (${result.yearlyDiff > 0 ? '+' : ''}${result.yearlyDiff.toLocaleString('sv-SE')} kr/år)</span>
+                </div>
+                ${result.impacts.filter(i => i.weight > 0).map(i => `
+                    <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">
+                        ${i.label}: ${i.currentRate.toFixed(2)}% → ${i.newRate.toFixed(2)}%
+                        ${i.affected ? '<span style="color:var(--warning)"> ⚡ påverkas direkt</span>' : '<span style="color:var(--positive)"> 🔒 låst</span>'}
+                    </div>
+                `).join('')}
+            </div>
+        `;
     },
 
     /* ═══════ EVENT BINDINGS ═══════ */
