@@ -1506,11 +1506,55 @@ const App = {
     _compareMortgageInit: false,
     _compareMortgageActiveType: 'variable',
 
+    renderRatesFreshnessBadge() {
+        const badge = document.getElementById('rates-freshness-badge');
+        if (!badge) return;
+
+        const meta = window.MORTGAGE_BANKS_META;
+        if (!meta || !meta.lastUpdated) {
+            badge.textContent = '⚠️ Okänd källa';
+            badge.style.background = 'rgba(255,100,0,0.15)';
+            badge.style.color = '#ff6600';
+            return;
+        }
+
+        const updated = new Date(meta.lastUpdated + 'T00:00:00');
+        const now = new Date();
+        const diffMs = now - updated;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        // Swedish month names
+        const months = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+        const dateStr = `${updated.getDate()} ${months[updated.getMonth()]} ${updated.getFullYear()}`;
+
+        let icon, color, bgColor;
+        if (diffDays <= 2) {
+            icon = '🟢'; color = '#00ff88'; bgColor = 'rgba(0,255,136,0.1)';
+        } else if (diffDays <= 7) {
+            icon = '🟡'; color = '#ffcc00'; bgColor = 'rgba(255,204,0,0.1)';
+        } else {
+            icon = '🔴'; color = '#ff3366'; bgColor = 'rgba(255,51,102,0.1)';
+        }
+
+        badge.innerHTML = `${icon} Uppdaterad: ${dateStr}`;
+        badge.style.background = bgColor;
+        badge.style.color = color;
+        badge.style.border = `1px solid ${color}33`;
+
+        // Tooltip with extra details
+        const verified = meta.lastVerified || '—';
+        const bankCount = meta.totalBanks || '—';
+        badge.title = `Listräntor verifierade: ${verified}\nAntal bankposter: ${bankCount}\nKällor: ${meta.sources || '—'}`;
+    },
+
     initCompareMortgageTab() {
         if (!window.MORTGAGE_BANKS) {
             console.error('Mortgage banks data not loaded.');
             return;
         }
+
+        // ── Render freshness badge ──
+        this.renderRatesFreshnessBadge();
 
         // Bind type toggle
         document.querySelectorAll('#compare-mortgage-type-toggle .tax-btn').forEach(btn => {
