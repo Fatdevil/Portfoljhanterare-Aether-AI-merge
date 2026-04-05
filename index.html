@@ -432,8 +432,10 @@
                 </div>
 
                 <!-- Loan Input -->
-                <div class="panel-section">
-                    <h3>Lånebelopp</h3>
+                <div class="panel-header" style="margin-top:16px">
+                    <span class="panel-title">Lånebelopp</span>
+                </div>
+                <div class="panel-section" style="padding-top:0">
                     <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
                         <input type="range" id="mort-loan" min="500000" max="10000000" step="100000" value="3000000" style="flex:1">
                         <span id="mort-loan-label" style="font-weight:700;font-size:1.1rem;min-width:110px;text-align:right;color:var(--accent)">3 000 000 kr</span>
@@ -441,8 +443,10 @@
                 </div>
 
                 <!-- Rate Mix Sliders -->
-                <div class="panel-section">
-                    <h3>Räntebindningsmix</h3>
+                <div class="panel-header" style="margin-top:16px">
+                    <span class="panel-title">Räntebindningsmix</span>
+                </div>
+                <div class="panel-section" style="padding-top:0">
                     <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0 12px">Fördela ditt lån mellan olika bindningstider. Summan måste bli 100%.</p>
                     <div id="mort-sliders"></div>
                     <div style="text-align:center;margin-top:8px">
@@ -451,8 +455,10 @@
                 </div>
 
                 <!-- Current Cost Summary -->
-                <div class="panel-section" id="mort-current-cost">
-                    <h3>💰 Månadskostnad idag</h3>
+                <div class="panel-header" style="margin-top:16px">
+                    <span class="panel-title">💰 Månadskostnad idag</span>
+                </div>
+                <div class="panel-section" id="mort-current-cost" style="padding-top:0">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
                         <div class="stat-card">
                             <div class="stat-label">Brutto/mån</div>
@@ -474,14 +480,18 @@
                 </div>
 
                 <!-- Quick Strategies -->
-                <div class="panel-section">
-                    <h3>⚡ Snabbval</h3>
+                <div class="panel-header" style="margin-top:16px">
+                    <span class="panel-title">⚡ Snabbval</span>
+                </div>
+                <div class="panel-section" style="padding-top:0">
                     <div id="mort-quick-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
                 </div>
 
                 <!-- Scenario Analysis -->
-                <div class="panel-section">
-                    <h3>📊 Ränteförändring</h3>
+                <div class="panel-header" style="margin-top:16px">
+                    <span class="panel-title">📊 Ränteförändring</span>
+                </div>
+                <div class="panel-section" style="padding-top:0">
                     <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0 12px">Vad händer om Riksbanken ändrar räntan?</p>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
                         <button class="btn-scenario" data-change="-1">Räntan -1%</button>
@@ -510,16 +520,20 @@
                 <!-- TAB 1: HISTORIK -->
                 <div id="mort-view-historik" style="display:none">
                     <!-- Historical Rate Chart -->
-                    <div class="panel-section" style="border-top:none">
-                        <h3>📈 Historiska bolåneräntor</h3>
+                    <div class="panel-header" style="margin-top:16px">
+                        <span class="panel-title">📈 Historiska bolåneräntor</span>
+                    </div>
+                    <div class="panel-section" style="border-top:none;padding-top:0">
                         <div style="height:350px;position:relative">
                             <canvas id="mort-history-chart"></canvas>
                         </div>
                     </div>
                     
                     <!-- Rate Stats Table -->
-                    <div class="panel-section">
-                        <h3>📋 Räntestatistik — Alla bindningstider</h3>
+                    <div class="panel-header" style="margin-top:16px">
+                        <span class="panel-title">📋 Räntestatistik — Alla bindningstider</span>
+                    </div>
+                    <div class="panel-section" style="padding-top:0">
                         <div id="mort-stats-table" style="margin-top:12px"></div>
                     </div>
                 </div>
@@ -527,17 +541,18 @@
                 <!-- TAB 2: BACKTEST -->
                 <div id="mort-view-backtest">
                     <!-- Backtest Comparison -->
-                    <div class="panel-section" style="border-top:none">
-                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                            <h3 style="margin:0">🔬 Backtest — Vad hade du betalat?</h3>
+                    <div class="panel-header" style="margin-top:16px; border-bottom:none; padding-bottom:4px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <span class="panel-title" style="margin:0">🔬 Backtest — Vad hade du betalat?</span>
                             <select id="mort-period-select" style="background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:4px 10px;font-size:0.75rem;font-family:'JetBrains Mono',monospace">
                                 <option value="5">Senaste 5 åren</option>
                                 <option value="10" selected>Senaste 10 åren</option>
                                 <option value="20">Max (sedan 2014)</option>
                             </select>
                         </div>
-                        <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0">Jämför din strategi mot standardstrategier under vald period</p>
-                        <div id="mort-backtest-table" style="margin-top:12px"></div>
+                        <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0 12px">Jämför din strategi mot standardstrategier under vald period</p>
+                    </div>
+                    <div class="panel-section" style="border-top:none;padding-top:0">
+                        <div id="mort-backtest-table" style="margin-top:0"></div>
                         <div style="height:300px;position:relative;margin-top:16px">
                             <canvas id="mort-backtest-chart"></canvas>
                         </div>
