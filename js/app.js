@@ -840,6 +840,8 @@ const App = {
             const v = parseInt(e.target.value);
             document.getElementById('mort-loan-label').textContent = v.toLocaleString('sv-SE') + ' kr';
             this.updateMortgageCost();
+            clearTimeout(this._mortBacktestTimer);
+            this._mortBacktestTimer = setTimeout(() => this.runMortgageBacktest(), 300);
         });
 
         // Mix sliders
@@ -857,6 +859,10 @@ const App = {
                 totalEl.style.color = Math.abs(pct - 100) <= 1 ? 'var(--positive)' : 'var(--negative)';
 
                 this.updateMortgageCost();
+
+                // Debounced backtest update (avoids lag while dragging)
+                clearTimeout(this._mortBacktestTimer);
+                this._mortBacktestTimer = setTimeout(() => this.runMortgageBacktest(), 200);
             });
         });
 
