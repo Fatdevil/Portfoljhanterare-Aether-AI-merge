@@ -785,6 +785,11 @@ const App = {
         if (viewName === 'savings' && !this._savingsInit) {
             this.initSavingsTab();
         }
+        
+        // Lazy-init compare-mortgage tab
+        if (viewName === 'compare-mortgage' && !this._compareMortgageInit) {
+            this.initCompareMortgageTab();
+        }
     },
 
     /* ═══════ MORTGAGE TAB ═══════ */
@@ -1485,6 +1490,168 @@ const App = {
                     </td>
                     <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight); font-weight:700; color:var(--accent)">
                         ${bank.rate.toFixed(2)}%
+                    </td>
+                    <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight); text-align:right; font-weight:600; color:${color}">
+                        ${extraStr}
+                    </td>
+                </tr>
+            `;
+        }
+        
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    },
+
+    /* ═══════ COMPARE MORTGAGE TAB ═══════ */
+    _compareMortgageInit: false,
+    _compareMortgageActiveType: 'variable',
+
+    initCompareMortgageTab() {
+        if (!window.MORTGAGE_BANKS) {
+            console.error('Mortgage banks data not loaded.');
+            return;
+        }
+
+        // Bind type toggle
+        document.querySelectorAll('#compare-mortgage-type-toggle .tax-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#compare-mortgage-type-toggle .tax-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this._compareMortgageActiveType = btn.dataset.type;
+                this.populateCompareMortgageSelect();
+                this.updateCompareMortgageView();
+            });
+        });
+
+        this.populateCompareMortgageSelect();
+
+        // Bind events
+        document.getElementById('compare-mortgage-amount').addEventListener('input', (e) => {
+            const v = parseInt(e.target.value);
+            document.getElementById('compare-mortgage-amount-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+            this.updateCompareMortgageView();
+        });
+
+        document.getElementById('compare-mortgage-current-bank').addEventListener('change', () => {
+            this.updateCompareMortgageView();
+        });
+
+        this.updateCompareMortgageView();
+        this._compareMortgageInit = true;
+    },
+
+    populateCompareMortgageSelect() {
+        const bankSelect = document.getElementById('compare-mortgage-current-bank');
+        
+        const relevantAccounts = window.MORTGAGE_BANKS.filter(a => a.type === this._compareMortgageActiveType);
+        const bigBanks = relevantAccounts.filter(a => a.isBigBank);
+        const nicheBanks = relevantAccounts.filter(a => !a.isBigBank);
+        
+        bankSelect.innerHTML = 
+            '<optgroup label="Storbanker">' +
+            bigBanks.map(b => `<option value="${b.id}">${b.name} — ${b.avgRate.toFixed(2)}% (Snitt)</option>`).join('') +
+            '</optgroup>' +
+            '<optgroup label="Nischbanker">' +
+            nicheBanks.map(b => `<option value="${b.id}">${b.name} — ${b.avgRate.toFixed(2)}% (Snitt)</option>`).join('') +
+            '</optgroup>';
+    },
+
+    updateCompareMortgageView() {
+        const capital = parseInt(document.getElementById('compare-mortgage-amount').value);
+        let selectedId = document.getElementById('compare-mortgage-current-bank').value;
+        const relevantAccounts = window.MORTGAGE_BANKS.filter(a => a.type === this._compareMortgageActiveType);
+        
+        if (relevantAccounts.length === 0) return;
+
+        let currentBank = relevantAccounts.find(a => a.id === selectedId);
+        if (!currentBank) {
+            currentBank = relevantAccounts[0];
+            document.getElementById('compare-mortgage-current-bank').value = currentBank.id;
+        }
+        
+        // Find best alternative in this category based on average rate
+        const alternatives = [...relevantAccounts].sort((a, b) => a.avgRate - b.avgRate);
+        const bestBank = alternatives[0];
+        
+        // Calculate diff. Since this is a loan, lower is better. We pay interest.
+        // Difference is current payment minus best payment.
+        const currentInterest = capital * (currentBank.avgRate / 100);
+        const currentCostAfterDeduction = currentInterest * 0.7; // 30% ränteavdrag
+        
+        const bestInterest = capital * (bestBank.avgRate / 100);
+        const bestCostAfterDeduction = bestInterest * 0.7; // 30% ränteavdrag
+        
+        const extraYield = currentCostAfterDeduction - bestCostAfterDeduction; 
+        
+        const yieldEl = document.getElementById('compare-mortgage-extra-yield');
+        const actionTextEl = document.getElementById('compare-mortgage-action-text');
+        
+        if (extraYield > 0) {
+            yieldEl.textContent = '+' + Math.round(extraYield).toLocaleString('sv-SE') + ' kr/år';
+            yieldEl.className = 'stat-value positive';
+            actionTextEl.innerHTML = `
+                Genom att flytta ditt bolån från <strong>${currentBank.name}</strong> (snittränta ${currentBank.avgRate.toFixed(2)}%) till <strong>${bestBank.name}</strong> (snittränta ${bestBank.avgRate.toFixed(2)}%) kan du <strong>spara ${Math.round(extraYield).toLocaleString('sv-SE')} kr varje år</strong> (räknat efter 30% ränteavdrag).
+            `;
+        } else {
+            yieldEl.textContent = 'Din valda bank är bäst';
+            yieldEl.className = 'stat-value';
+            actionTextEl.innerHTML = `Du har redan angett banken med lägst snittränta på denna bindningstid. Bra jobbat!`;
+        }
+        
+        // Render table
+        this.renderCompareMortgageTable(currentBank.id, capital, relevantAccounts);
+    },
+    
+    renderCompareMortgageTable(currentBankId, capital, relevantAccounts) {
+        const container = document.getElementById('compare-mortgage-table-container');
+        
+        // Sort lowest avgRate first
+        const sorted = [...relevantAccounts].sort((a, b) => a.avgRate - b.avgRate);
+        
+        let html = `
+            <table class="data-table" style="width:100%; text-align:left;">
+                <thead>
+                    <tr>
+                        <th style="padding-bottom:8px">Aktör</th>
+                        <th style="padding-bottom:8px">Listränta</th>
+                        <th style="padding-bottom:8px">Snittränta</th>
+                        <th style="padding-bottom:8px; text-align:right">Sparar/År</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        const currentBank = relevantAccounts.find(a => a.id === currentBankId);
+        const currentCostAfterDeduction = capital * (currentBank.avgRate / 100) * 0.7;
+
+        for (const bank of sorted) {
+            const isCurrent = bank.id === currentBankId;
+            const costAfterDeduction = capital * (bank.avgRate / 100) * 0.7;
+            const extra = currentCostAfterDeduction - costAfterDeduction;
+            
+            let extraStr = '—';
+            let color = 'var(--text-muted)';
+            if (extra > 0) {
+                extraStr = '+' + Math.round(extra).toLocaleString('sv-SE') + ' kr';
+                color = 'var(--positive)';
+            } else if (extra < 0) {
+                extraStr = Math.round(extra).toLocaleString('sv-SE') + ' kr';
+                color = 'var(--negative)';
+            } else {
+                extraStr = 'Din valda bank';
+            }
+
+            html += `
+                <tr style="${isCurrent ? 'background:var(--bg-panel-hover)' : ''}">
+                    <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight);">
+                        <span style="font-weight:600; color:var(--text-primary)">${bank.name}</span>
+                        ${isCurrent ? '<span style="font-size:9px; margin-left:6px; background:var(--border-highlight); padding:2px 4px; border-radius:3px">VALD</span>' : ''}
+                    </td>
+                    <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight); font-weight:400; color:var(--text-muted)">
+                        <span style="text-decoration: line-through; opacity:0.8">${bank.listRate.toFixed(2)}%</span>
+                    </td>
+                    <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight); font-weight:700; color:var(--accent)">
+                        ${bank.avgRate.toFixed(2)}%
                     </td>
                     <td style="padding:10px 4px; border-bottom:1px solid var(--border-highlight); text-align:right; font-weight:600; color:${color}">
                         ${extraStr}

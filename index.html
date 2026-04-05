@@ -26,7 +26,8 @@
             <button class="nav-btn active" data-view="frontier" id="nav-frontier">EFFEKTIV FRONT</button>
             <button class="nav-btn" data-view="compare" id="nav-compare">JÄMFÖR BANKER</button>
             <button class="nav-btn" data-view="tax" id="nav-tax">SKATTESIMULERING</button>
-            <button class="nav-btn" data-view="mortgage" id="nav-mortgage">🏠 BOLÅN</button>
+            <button class="nav-btn" data-view="mortgage" id="nav-mortgage">BOLÅNEPORTFÖLJ</button>
+            <button class="nav-btn" data-view="compare-mortgage" id="nav-compare-mortgage">🏠 JÄMFÖR BOLÅN</button>
             <button class="nav-btn" data-view="savings" id="nav-savings">🐖 JÄMFÖR KONTON</button>
         </div>
 
@@ -640,9 +641,83 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════
+         VIEW 5: JÄMFÖR BOLÅN (MORTGAGE COMPARISON)
+         ═══════════════════════════════════════════════════════════════ -->
+    <div class="main-grid view-section" id="view-compare-mortgage">
+
+        <!-- LEFT: User Inputs -->
+        <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
+            <div class="panel-header">
+                <h2>🏠 DITT BOLÅN</h2>
+                <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Jämför utlåningsräntor (Listränta & Snittränta)</p>
+            </div>
+
+            <!-- Category Toggle -->
+            <div class="tax-toggle" id="compare-mortgage-type-toggle" style="margin-bottom:16px; display:flex;">
+                <button class="tax-btn active" data-type="variable" style="flex:1">Rörligt (3m)</button>
+                <button class="tax-btn" data-type="fixed_1y" style="flex:1">1 År</button>
+                <button class="tax-btn" data-type="fixed_3y" style="flex:1">3 År</button>
+            </div>
+
+            <!-- Mortgage Input -->
+            <div class="panel-header" style="margin-top:16px">
+                <span class="panel-title">Lånebelopp</span>
+                <span id="compare-mortgage-amount-label" style="float:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">3 000 000 kr</span>
+            </div>
+            <div class="panel-section" style="padding-top:10px">
+                <input type="range" id="compare-mortgage-amount" min="100000" max="10000000" step="100000" value="3000000" style="width:100%;accent-color:var(--accent-primary);">
+            </div>
+            
+            <div class="panel-header" style="margin-top:16px">
+                <span class="panel-title">Din Nuvarande Bank</span>
+            </div>
+            <div class="panel-section" style="padding-top:0">
+                <select id="compare-mortgage-current-bank" style="width:100%; background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:8px;font-size:0.9rem;font-family:'JetBrains Mono',monospace;margin-top:8px;">
+                    <!-- Populated by JS -->
+                </select>
+                <p style="color:var(--text-muted);font-size:0.75rem;margin:8px 0 0">Vi jämför din bank med övriga stor- och nischbanker baserat på deras dagsaktuella snitträntor och listräntor.</p>
+            </div>
+            
+            <!-- Result Summary Summary -->
+            <div class="panel-header" style="margin-top:16px">
+                <span class="panel-title">Möjlig besparing (1 år)</span>
+            </div>
+            <div class="panel-section" id="compare-mortgage-result-summary" style="padding-top:0">
+                <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px">
+                    <div class="stat-card">
+                        <div class="stat-label">Sparar per år (efter 30% ränteavdrag)</div>
+                        <div class="stat-value positive" id="compare-mortgage-extra-yield" style="font-size:1.4rem">—</div>
+                    </div>
+                </div>
+                <div style="margin-top:16px; padding:12px; background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:6px;">
+                    <span id="compare-mortgage-action-text" style="font-size:0.85rem; color:var(--text-primary);">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Compare List -->
+        <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
+            <div class="panel-header" style="padding-bottom:0">
+                <h2>BÄSTA BOLÅNERÄNTAN JUST NU</h2>
+                <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Snitträntan indikerar vad kunder i genomsnitt faktiskt fick prutat till sig. Listräntan är bankens "katalogpris".</p>
+                
+                <div style="display:flex;gap:16px;margin-top:16px;border-bottom:1px solid var(--border-color)">
+                    <button class="nav-btn active" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">📊 Snittränta</button>
+                    <!-- Here we could have a toggle to rank by List Rate, but we'll stick to Snittränta for ranking -->
+                </div>
+            </div>
+
+            <div id="compare-mortgage-table-container" style="margin-top:16px">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
     <!-- ═══════ SCRIPTS ═══════ -->
     <script src="js/data.js"></script>
     <script src="js/savings_data.js"></script>
+    <script src="js/mortgage_banks_data.js"></script>
     <script src="js/matrix.js"></script>
     <script src="js/yahoo.js"></script>
     <script src="js/optimizer.js"></script>
