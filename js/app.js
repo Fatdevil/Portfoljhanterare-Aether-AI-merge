@@ -1016,6 +1016,22 @@ const App = {
 
     runMortgageBacktest() {
         if (!MortgageEngine.isLoaded) return;
+
+        // Only run when weights sum to 100% — prevents misleading results
+        const totalWeight = Math.round(Object.values(this._mortgageWeights).reduce((s, v) => s + v, 0) * 100);
+        const tableEl = document.getElementById('mort-backtest-table');
+        if (Math.abs(totalWeight - 100) > 1) {
+            tableEl.innerHTML = `
+                <div style="text-align:center;padding:24px;color:var(--text-muted);border:1px dashed var(--border-color);border-radius:8px;margin-top:12px">
+                    <span style="font-size:1.5rem">⚠️</span><br>
+                    <strong style="color:var(--negative)">Summan är ${totalWeight}% — måste vara 100%</strong><br>
+                    <span style="font-size:0.75rem">Justera reglagen ovan så att summan blir exakt 100% för att se backtestet</span>
+                </div>
+            `;
+            if (this._mortBacktestChart) { this._mortBacktestChart.destroy(); this._mortBacktestChart = null; }
+            return;
+        }
+
         const loan = parseInt(document.getElementById('mort-loan').value);
         const periodSelect = document.getElementById('mort-period-select');
         const periodYears = periodSelect ? parseInt(periodSelect.value) : 10;
@@ -1056,7 +1072,6 @@ const App = {
         const comparison = MortgageEngine.compareStrategies(loan, strategies, validStart, endMonth);
 
         // Render table
-        const tableEl = document.getElementById('mort-backtest-table');
         const numMonths = comparison[0]?.result?.numMonths || 0;
         const numYears = (numMonths / 12).toFixed(1);
         tableEl.innerHTML = `
