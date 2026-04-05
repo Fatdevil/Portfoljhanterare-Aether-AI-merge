@@ -512,8 +512,15 @@
 
                 <!-- Backtest Comparison -->
                 <div class="panel-section">
-                    <h3>🔬 Backtest — Vad hade du betalat?</h3>
-                    <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0">Jämför din strategi mot standardstrategier under de senaste 10 åren</p>
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                        <h3 style="margin:0">🔬 Backtest — Vad hade du betalat?</h3>
+                        <select id="mort-period-select" style="background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:4px 10px;font-size:0.75rem;font-family:'JetBrains Mono',monospace">
+                            <option value="5">Senaste 5 åren</option>
+                            <option value="10" selected>Senaste 10 åren</option>
+                            <option value="20">Max (sedan 2014)</option>
+                        </select>
+                    </div>
+                    <p style="color:var(--text-muted);font-size:0.75rem;margin:4px 0">Jämför din strategi mot standardstrategier under vald period</p>
                     <div id="mort-backtest-table" style="margin-top:12px"></div>
                     <div style="height:300px;position:relative;margin-top:16px">
                         <canvas id="mort-backtest-chart"></canvas>

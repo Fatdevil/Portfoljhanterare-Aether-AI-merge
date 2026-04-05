@@ -784,7 +784,7 @@ const App = {
 
     /* ═══════ MORTGAGE TAB ═══════ */
     _mortgageInit: false,
-    _mortgageWeights: { variable: 0.50, fixed_1to5y: 0.50 },
+    _mortgageWeights: { variable: 0.34, fixed_1y: 0.33, fixed_3y: 0.33 },
     _mortHistChart: null,
     _mortBacktestChart: null,
 
@@ -884,6 +884,14 @@ const App = {
                 this.runMortgageScenario(change);
             });
         });
+
+        // Period selector for backtest
+        const periodSelect = document.getElementById('mort-period-select');
+        if (periodSelect) {
+            periodSelect.addEventListener('change', () => {
+                this.runMortgageBacktest();
+            });
+        }
     },
 
     bindMortgageMixSliders() {
@@ -947,6 +955,23 @@ const App = {
                 };
             });
 
+        // Add dashed reference line: SCB aggregate "Bunden 1-5 år" (full data from 2005)
+        const refSeries = MortgageEngine.rateData['ref_1to5y'];
+        if (refSeries && Object.keys(refSeries).length > 100) {
+            datasets.push({
+                label: 'Snitt 1-5 år (ref)',
+                data: months.map(m => (refSeries && refSeries[m] !== undefined) ? refSeries[m] : NaN),
+                borderColor: 'rgba(255,255,255,0.3)',
+                borderWidth: 1.5,
+                borderDash: [6, 4],
+                pointRadius: 0,
+                pointHoverRadius: 3,
+                tension: 0.2,
+                fill: false,
+                spanGaps: false,
+            });
+        }
+
         this._mortHistChart = new Chart(ctx, {
             type: 'line',
             data: { labels, datasets },
@@ -986,18 +1011,35 @@ const App = {
     runMortgageBacktest() {
         if (!MortgageEngine.isLoaded) return;
         const loan = parseInt(document.getElementById('mort-loan').value);
+        const periodSelect = document.getElementById('mort-period-select');
+        const periodYears = periodSelect ? parseInt(periodSelect.value) : 10;
 
-        // Find a good 10-year window
+        // Calculate start/end based on selected period
         const endMonth = MortgageEngine.months[MortgageEngine.months.length - 1];
         const endDate = MortgageEngine.parseMonth(endMonth);
         const startDate = new Date(endDate);
-        startDate.setFullYear(startDate.getFullYear() - 10);
+        startDate.setFullYear(startDate.getFullYear() - periodYears);
         const startYear = startDate.getFullYear();
         const startMo = String(startDate.getMonth() + 1).padStart(2, '0');
         const startMonth = `${startYear}M${startMo}`;
 
-        // Ensure startMonth exists
-        const validStart = MortgageEngine.months.find(m => m >= startMonth) || MortgageEngine.months[0];
+        // Ensure startMonth exists and all selected binding types have data
+        let validStart = MortgageEngine.months.find(m => m >= startMonth) || MortgageEngine.months[0];
+
+        // For binding types with partial data, clamp start to earliest available
+        const usedTypes = new Set();
+        for (const s of [...MortgageEngine.getStandardStrategies(), { weights: this._mortgageWeights }]) {
+            for (const id of Object.keys(s.weights)) {
+                if (s.weights[id] > 0) usedTypes.add(id);
+            }
+        }
+        for (const typeId of usedTypes) {
+            const series = MortgageEngine.rateData[typeId];
+            if (series) {
+                const firstMonth = Object.keys(series).sort()[0];
+                if (firstMonth > validStart) validStart = firstMonth;
+            }
+        }
 
         // Standard strategies + user's mix
         const strategies = [
@@ -1009,6 +1051,8 @@ const App = {
 
         // Render table
         const tableEl = document.getElementById('mort-backtest-table');
+        const numMonths = comparison[0]?.result?.numMonths || 0;
+        const numYears = (numMonths / 12).toFixed(1);
         tableEl.innerHTML = `
             <table class="mort-backtest-table">
                 <thead>
@@ -1030,10 +1074,10 @@ const App = {
                     `).join('')}
                 </tbody>
             </table>
-            <p style="color:var(--text-muted);font-size:0.7rem;margin-top:8px">Period: ${MortgageEngine.formatMonth(validStart)} → ${MortgageEngine.formatMonth(endMonth)} (${comparison[0]?.result?.numMonths || 0} månader)</p>
+            <p style="color:var(--text-muted);font-size:0.7rem;margin-top:8px">Period: ${MortgageEngine.formatMonth(validStart)} → ${MortgageEngine.formatMonth(endMonth)} (${numMonths} månader ≈ ${numYears} år)</p>
         `;
 
-        // Render backtest chart (monthly cost over time for top 3 strategies)
+        // Render backtest chart (monthly cost over time for top strategies)
         this.renderMortgageBacktestChart(comparison.slice(0, 4), validStart, endMonth);
     },
 
@@ -1096,7 +1140,7 @@ const App = {
     renderMortgageStatsTable() {
         const stats = MortgageEngine.getHistoricalStats();
         const tableEl = document.getElementById('mort-stats-table');
-        const allTypes = [...MortgageEngine.BINDING_TYPES, ...MortgageEngine.DETAIL_TYPES];
+        const allTypes = MortgageEngine.BINDING_TYPES;
 
         tableEl.innerHTML = `
             <table class="mort-stats-table">
@@ -1114,9 +1158,9 @@ const App = {
                 <tbody>
                     ${Object.entries(stats).map(([id, s]) => {
                         const bt = allTypes.find(b => b.id === id);
-                        const isDetail = MortgageEngine.DETAIL_TYPES.some(d => d.id === id);
+
                         return `
-                            <tr style="${isDetail ? 'opacity:0.7;font-size:0.72rem' : ''}">
+                            <tr>
                                 <td style="color:${bt?.color || 'inherit'};font-weight:600">${isDetail ? '  └ ' : ''}${s.label}</td>
                                 <td style="font-weight:700">${s.current.toFixed(2)}%</td>
                                 <td>${s.avg.toFixed(2)}%</td>
