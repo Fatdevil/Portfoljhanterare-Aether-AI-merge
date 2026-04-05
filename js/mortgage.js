@@ -157,6 +157,16 @@ const MortgageEngine = {
     },
 
     /**
+     * Get rate ONLY if exact month exists (no fallback)
+     * Used for charting to avoid showing misleading data
+     */
+    getRateStrict(bindingId, month) {
+        const series = this.rateData[bindingId];
+        if (!series) return null;
+        return series[month] !== undefined ? series[month] : null;
+    },
+
+    /**
      * Get the latest available rates for all binding types
      */
     getLatestRates() {

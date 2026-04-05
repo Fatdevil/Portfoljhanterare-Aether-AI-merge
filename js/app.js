@@ -929,7 +929,7 @@ const App = {
             .filter(bt => MortgageEngine.rateData[bt.id] && Object.keys(MortgageEngine.rateData[bt.id]).length > 50)
             .map(bt => ({
                 label: bt.label,
-                data: months.map(m => MortgageEngine.getRate(bt.id, m)),
+                data: months.map(m => MortgageEngine.getRateStrict(bt.id, m)),
                 borderColor: bt.color,
                 backgroundColor: bt.color + '15',
                 borderWidth: 2,
@@ -937,6 +937,7 @@ const App = {
                 pointHoverRadius: 4,
                 tension: 0.3,
                 fill: false,
+                spanGaps: false,
             }));
 
         this._mortHistChart = new Chart(ctx, {
