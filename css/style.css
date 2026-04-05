@@ -967,6 +967,11 @@ body {
     font-weight: 700 !important;
 }
 
+/* ── Mortgage Tab Content (fills remaining space) ──────────────────── */
+.mortgage-tab-content {
+    flex: 1;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .main-grid {
