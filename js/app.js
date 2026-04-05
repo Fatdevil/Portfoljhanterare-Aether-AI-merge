@@ -1579,8 +1579,8 @@ const App = {
                 this.updateCompareMortgageView();
                 this.updatePersonalRates();
                 // Re-render chart + insights if history tab is active
-                const activeTab = document.querySelector('#compare-mortgage-right-tabs .nav-btn.active');
-                if (activeTab && activeTab.dataset.tab === 'history') {
+                const activeTab = document.querySelector('#mortgage-main-tabs .mortgage-tab-btn.active');
+                if (activeTab && activeTab.dataset.mtab === 'history') {
                     this.renderMortgageHistoryChart();
                 }
             });
@@ -1612,36 +1612,73 @@ const App = {
         document.getElementById('compare-mortgage-current-bank').addEventListener('change', () => {
             this.updateCompareMortgageView();
             // Re-render chart and insights if history tab is active
-            const activeTabBtn = document.querySelector('#compare-mortgage-right-tabs .nav-btn.active');
-            if (activeTabBtn && activeTabBtn.dataset.tab === 'history') {
+            const activeTabBtn = document.querySelector('#mortgage-main-tabs .mortgage-tab-btn.active');
+            if (activeTabBtn && activeTabBtn.dataset.mtab === 'history') {
                 this.renderMortgageHistoryChart();
             }
         });
 
-        // Bind right panel tabs
-        document.querySelectorAll('#compare-mortgage-right-tabs .nav-btn').forEach(btn => {
+        // Bind main 3-tab switching
+        document.querySelectorAll('#mortgage-main-tabs .mortgage-tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                document.querySelectorAll('#compare-mortgage-right-tabs .nav-btn').forEach(b => {
+                // Deactivate all tabs
+                document.querySelectorAll('#mortgage-main-tabs .mortgage-tab-btn').forEach(b => {
                     b.classList.remove('active');
                     b.style.color = 'var(--text-muted)';
-                    b.style.borderBottom = '2px solid transparent';
+                    b.style.borderBottom = '3px solid transparent';
                 });
+                // Activate clicked tab
                 const target = e.currentTarget;
                 target.classList.add('active');
-                target.style.color = 'var(--text-primary)';
-                target.style.borderBottom = '2px solid var(--accent-primary)';
+                target.style.color = 'var(--accent-primary)';
+                target.style.borderBottom = '3px solid var(--accent-primary)';
                 
-                const tab = target.dataset.tab;
+                // Show/hide content
+                const tab = target.dataset.mtab;
+                document.querySelectorAll('.mortgage-tab-content').forEach(c => c.style.display = 'none');
+                document.getElementById('mtab-' + tab).style.display = 'block';
+                
+                // Actions specific to each tab
                 if (tab === 'history') {
-                    document.getElementById('compare-mortgage-table-container').style.display = 'none';
-                    document.getElementById('compare-mortgage-history-container').style.display = 'block';
                     this.renderMortgageHistoryChart();
-                } else {
-                    document.getElementById('compare-mortgage-history-container').style.display = 'none';
-                    document.getElementById('compare-mortgage-table-container').style.display = 'block';
+                } else if (tab === 'personal') {
+                    // Sync personal tab sliders from compare tab
+                    const propVal = document.getElementById('compare-property-value')?.value;
+                    const loanVal = document.getElementById('compare-mortgage-amount')?.value;
+                    if (propVal) document.getElementById('personal-property-value').value = propVal;
+                    if (loanVal) document.getElementById('personal-mortgage-amount').value = loanVal;
+                    this.syncPersonalSliderLabels();
+                    this.updatePersonalRates();
                 }
             });
         });
+
+        // Sync personal tab sliders back to compare tab
+        const personalPropSlider = document.getElementById('personal-property-value');
+        const personalLoanSlider = document.getElementById('personal-mortgage-amount');
+        if (personalPropSlider) {
+            personalPropSlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value);
+                document.getElementById('personal-property-value-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+                // Sync back
+                document.getElementById('compare-property-value').value = v;
+                document.getElementById('compare-property-value-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+                this.updateLTV();
+                this.updatePersonalRates();
+            });
+        }
+        if (personalLoanSlider) {
+            personalLoanSlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value);
+                document.getElementById('personal-mortgage-amount-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+                // Sync back
+                document.getElementById('compare-mortgage-amount').value = v;
+                document.getElementById('compare-mortgage-amount-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+                this.updateLTV();
+                this.updatePersonalRates();
+                this.updateCompareMortgageView();
+            });
+        }
 
         // Bind zoom buttons for history chart
         document.querySelectorAll('.zoom-btn').forEach(btn => {
@@ -1665,24 +1702,21 @@ const App = {
         this.updatePersonalRates();
         this.renderDiscountCurvesFreshness();
         this.updateCompareMortgageView();
-        
-        // Also ensure charting works initially if they start on history (unlikely, but safe)
-        if(document.querySelector('#compare-mortgage-right-tabs .active').dataset.tab === 'history'){
-             this.renderMortgageHistoryChart();
-        } else {
-            // Even on the list tab, generate insights + profiles
-            if (window.MORTGAGE_HISTORY) {
-                const db = window.MORTGAGE_HISTORY;
-                const binding = this._compareMortgageActiveType;
-                const currentData = db.data[binding];
-                if (currentData) {
-                    this.generateMortgageInsights(db, currentData, binding);
-                }
-                this.generateBankProfiles();
-            }
-        }
 
         this._compareMortgageInit = true;
+    },
+
+    syncPersonalSliderLabels() {
+        const propVal = document.getElementById('personal-property-value')?.value;
+        const loanVal = document.getElementById('personal-mortgage-amount')?.value;
+        if (propVal) document.getElementById('personal-property-value-label').textContent = parseInt(propVal).toLocaleString('sv-SE') + ' kr';
+        if (loanVal) document.getElementById('personal-mortgage-amount-label').textContent = parseInt(loanVal).toLocaleString('sv-SE') + ' kr';
+        // Sync LTV display on personal tab
+        const loan = parseInt(loanVal || 3000000);
+        const prop = parseInt(propVal || 5000000);
+        const ltv = Math.round((loan / prop) * 100);
+        const personalLtv = document.getElementById('personal-ltv-display');
+        if (personalLtv) personalLtv.textContent = ltv + '%';
     },
 
     // ── LTV Calculation ──

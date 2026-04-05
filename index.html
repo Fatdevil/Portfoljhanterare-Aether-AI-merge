@@ -642,146 +642,176 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         VIEW 5: JÄMFÖR BOLÅN (MORTGAGE COMPARISON)
+         VIEW 5: JÄMFÖR BOLÅN (MORTGAGE COMPARISON) — 3-Tab Architecture
          ═══════════════════════════════════════════════════════════════ -->
-    <div class="main-grid view-section" id="view-compare-mortgage">
+    <div class="view-section" id="view-compare-mortgage" style="min-height:calc(100vh - 46px); background:var(--bg-panel); padding:16px 20px;">
 
-        <!-- LEFT: User Inputs -->
-        <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
-            <div class="panel-header">
-                <h2>🏠 DITT BOLÅN</h2>
-                <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Jämför utlåningsräntor (Listränta & Snittränta)</p>
+        <!-- ── GLOBAL HEADER ── -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+            <div>
+                <h2 style="font-size:1.3rem; margin:0; color:var(--text-primary);">🏠 JÄMFÖR BOLÅN</h2>
+                <p style="color:var(--text-muted); font-size:0.8rem; margin-top:4px;">Jämför utlåningsräntor, historisk data och hitta din bästa bank</p>
             </div>
+            <span id="rates-freshness-badge" style="font-size:0.7rem;padding:3px 10px;border-radius:12px;font-family:'JetBrains Mono',monospace;white-space:nowrap;">Laddar...</span>
+        </div>
 
-            <!-- Category Toggle -->
-            <div id="compare-mortgage-type-toggle" style="margin-bottom:16px; display:grid; grid-template-columns:repeat(5,1fr); gap:6px;">
-                <button class="mortgage-bind-btn active" data-type="variable" style="padding:10px 4px; border-radius:8px; border:2px solid var(--accent-primary); background:rgba(0,255,136,0.12); color:#00ff88; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">Rörligt<br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">(3 mån)</span></button>
-                <button class="mortgage-bind-btn" data-type="fixed_1y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">1 År</button>
-                <button class="mortgage-bind-btn" data-type="fixed_2y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">2 År</button>
-                <button class="mortgage-bind-btn" data-type="fixed_3y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">3 År</button>
-                <button class="mortgage-bind-btn" data-type="fixed_5y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">5 År</button>
-            </div>
+        <!-- ── BINDING TYPE SELECTOR (always visible) ── -->
+        <div id="compare-mortgage-type-toggle" style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:16px; max-width:500px;">
+            <button class="mortgage-bind-btn active" data-type="variable" style="padding:10px 4px; border-radius:8px; border:2px solid var(--accent-primary); background:rgba(0,255,136,0.12); color:#00ff88; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">Rörligt<br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">(3 mån)</span></button>
+            <button class="mortgage-bind-btn" data-type="fixed_1y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">1 År</button>
+            <button class="mortgage-bind-btn" data-type="fixed_2y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">2 År</button>
+            <button class="mortgage-bind-btn" data-type="fixed_3y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">3 År</button>
+            <button class="mortgage-bind-btn" data-type="fixed_5y" style="padding:10px 4px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-tertiary); color:var(--text-muted); font-weight:600; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">5 År</button>
+        </div>
 
-            <!-- Bostadsvärde -->
-            <div class="panel-header" style="margin-top:16px">
-                <span class="panel-title">Bostadsvärde</span>
-                <span id="compare-property-value-label" style="float:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">5 000 000 kr</span>
-            </div>
-            <div class="panel-section" style="padding-top:10px">
-                <input type="range" id="compare-property-value" min="500000" max="15000000" step="100000" value="5000000" style="width:100%;accent-color:var(--accent-primary);">
-            </div>
+        <!-- ── 3 MAIN TABS ── -->
+        <div id="mortgage-main-tabs" style="display:flex; gap:0; border-bottom:2px solid var(--border-color); margin-bottom:20px;">
+            <button class="mortgage-tab-btn active" data-mtab="compare" style="padding:10px 20px; background:transparent; border:none; border-bottom:3px solid var(--accent-primary); color:var(--accent-primary); font-weight:700; font-size:0.9rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">📊 Jämför Räntor</button>
+            <button class="mortgage-tab-btn" data-mtab="personal" style="padding:10px 20px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--text-muted); font-weight:600; font-size:0.9rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">🎯 Personlig Ränta</button>
+            <button class="mortgage-tab-btn" data-mtab="history" style="padding:10px 20px; background:transparent; border:none; border-bottom:3px solid transparent; color:var(--text-muted); font-weight:600; font-size:0.9rem; cursor:pointer; font-family:var(--font-mono); transition:all 0.2s;">📈 Historik & Analys</button>
+        </div>
 
-            <!-- Lånebelopp -->
-            <div class="panel-header" style="margin-top:12px">
-                <span class="panel-title">Lånebelopp</span>
-                <span id="compare-mortgage-amount-label" style="float:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">3 000 000 kr</span>
-            </div>
-            <div class="panel-section" style="padding-top:10px">
-                <input type="range" id="compare-mortgage-amount" min="100000" max="10000000" step="100000" value="3000000" style="width:100%;accent-color:var(--accent-primary);">
-            </div>
-
-            <!-- LTV Indicator -->
-            <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:8px;">
-                <span style="font-size:0.8rem;color:var(--text-muted);">BELÅNINGSGRAD</span>
-                <span id="compare-ltv-display" style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1rem;color:var(--accent-primary);">60%</span>
-            </div>
-
-            <!-- PERSONLIG RÄNTA SECTION -->
-            <div class="panel-header" style="margin-top:16px">
-                <span class="panel-title" style="color:#00ff88;">🎯 Personlig Ränta</span>
-            </div>
-            <div id="personal-rate-container" style="margin-top:8px;">
-                <p style="color:var(--text-muted);font-size:0.7rem;margin:0 0 8px;">Baserat på din belåningsgrad — kalibreras veckovis mot bankernas kalkylatorer</p>
-                <div id="personal-rate-cards" style="display:flex;flex-direction:column;gap:6px;">
-                    <!-- Populated by JS -->
-                </div>
-                <div id="personal-rate-meta" style="margin-top:6px;">
-                    <span style="font-size:0.65rem;color:var(--text-muted);font-style:italic;" id="discount-curves-freshness">Laddar kalibrering...</span>
-                </div>
-            </div>
-            
-            <div class="panel-header" style="margin-top:16px">
-                <span class="panel-title">Din Nuvarande Bank</span>
-            </div>
-            <div class="panel-section" style="padding-top:0">
-                <select id="compare-mortgage-current-bank" style="width:100%; background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:8px;font-size:0.9rem;font-family:'JetBrains Mono',monospace;margin-top:8px;">
-                    <!-- Populated by JS -->
-                </select>
-                <p style="color:var(--text-muted);font-size:0.75rem;margin:8px 0 0">Vi jämför din bank med övriga stor- och nischbanker baserat på deras dagsaktuella snitträntor och listräntor.</p>
-            </div>
-            
-            <!-- Result Summary Summary -->
-            <div class="panel-header" style="margin-top:16px">
-                <span class="panel-title">Möjlig besparing (1 år)</span>
-            </div>
-            <div class="panel-section" id="compare-mortgage-result-summary" style="padding-top:0">
-                <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px">
-                    <div class="stat-card">
-                        <div class="stat-label">Sparar per år (efter 30% ränteavdrag)</div>
-                        <div class="stat-value positive" id="compare-mortgage-extra-yield" style="font-size:1.4rem">—</div>
+        <!-- ═══════ TAB 1: JÄMFÖR RÄNTOR ═══════ -->
+        <div id="mtab-compare" class="mortgage-tab-content">
+            <div style="display:grid; grid-template-columns:380px 1fr; gap:20px;">
+                <!-- Left: Config -->
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <!-- Bostadsvärde -->
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--accent-primary); font-weight:700;">Bostadsvärde</span>
+                            <span id="compare-property-value-label" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">5 000 000 kr</span>
+                        </div>
+                        <input type="range" id="compare-property-value" min="500000" max="15000000" step="100000" value="5000000" style="width:100%;accent-color:var(--accent-primary);">
+                    </div>
+                    <!-- Lånebelopp -->
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--accent-primary); font-weight:700;">Lånebelopp</span>
+                            <span id="compare-mortgage-amount-label" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">3 000 000 kr</span>
+                        </div>
+                        <input type="range" id="compare-mortgage-amount" min="100000" max="10000000" step="100000" value="3000000" style="width:100%;accent-color:var(--accent-primary);">
+                    </div>
+                    <!-- LTV -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px;">
+                        <span style="font-size:0.8rem; color:var(--text-muted);">BELÅNINGSGRAD</span>
+                        <span id="compare-ltv-display" style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.1rem; color:var(--accent-primary);">60%</span>
+                    </div>
+                    <!-- Din Nuvarande Bank -->
+                    <div>
+                        <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--accent-primary); font-weight:700; display:block; margin-bottom:6px;">Din Nuvarande Bank</span>
+                        <select id="compare-mortgage-current-bank" style="width:100%; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-color); border-radius:6px; padding:8px; font-size:0.9rem; font-family:'JetBrains Mono',monospace;">
+                            <!-- Populated by JS -->
+                        </select>
+                        <p style="color:var(--text-muted); font-size:0.7rem; margin:6px 0 0;">Vi jämför din bank med övriga banker baserat på dagsaktuella snitträntor.</p>
+                    </div>
+                    <!-- Möjlig Besparing -->
+                    <div id="compare-mortgage-result-summary" style="margin-top:4px;">
+                        <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--accent-primary); font-weight:700; display:block; margin-bottom:8px;">Möjlig Besparing (1 år)</span>
+                        <div class="stat-card" style="text-align:center;">
+                            <div class="stat-label">Sparar per år (efter 30% ränteavdrag)</div>
+                            <div class="stat-value positive" id="compare-mortgage-extra-yield" style="font-size:1.4rem">—</div>
+                        </div>
+                        <div style="margin-top:10px; padding:10px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:6px;">
+                            <span id="compare-mortgage-action-text" style="font-size:0.8rem; color:var(--text-primary);">—</span>
+                        </div>
                     </div>
                 </div>
-                <div style="margin-top:16px; padding:12px; background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:6px;">
-                    <span id="compare-mortgage-action-text" style="font-size:0.85rem; color:var(--text-primary);">—</span>
+                <!-- Right: Rate Table -->
+                <div>
+                    <h3 style="font-size:1rem; margin:0 0 12px; color:var(--text-primary);">Bästa bolåneräntan just nu</h3>
+                    <p style="color:var(--text-muted); font-size:0.75rem; margin:0 0 12px;">Snitträntan = vad kunder i genomsnitt fick prutat till. Listräntan = bankens "katalogpris".</p>
+                    <div id="compare-mortgage-table-container">
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT: Compare List -->
-        <div class="panel" style="overflow-y:auto;max-height:calc(100vh - 90px)">
-            <div class="panel-header" style="padding-bottom:0">
-                <h2>BÄSTA BOLÅNERÄNTAN JUST NU</h2>
-                <p style="color:var(--text-muted);font-size:0.8rem;margin-top:4px">Snitträntan indikerar vad kunder i genomsnitt faktiskt fick prutat till sig. Listräntan är bankens "katalogpris".</p>
-                
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-bottom:1px solid var(--border-color)">
-                    <div id="compare-mortgage-right-tabs" style="display:flex;gap:16px;">
-                        <button class="nav-btn active" data-tab="list" style="background:transparent;border:none;color:var(--text-primary);padding:8px 0;cursor:pointer;border-bottom:2px solid var(--accent-primary);font-weight:600;font-size:0.85rem;">📊 Snittränta</button>
-                        <button class="nav-btn" data-tab="history" style="background:transparent;border:none;color:var(--text-muted);padding:8px 0;cursor:pointer;border-bottom:2px solid transparent;font-weight:600;font-size:0.85rem;">📈 Historik</button>
+        <!-- ═══════ TAB 2: PERSONLIG RÄNTA ═══════ -->
+        <div id="mtab-personal" class="mortgage-tab-content" style="display:none;">
+            <div style="display:grid; grid-template-columns:380px 1fr; gap:20px;">
+                <!-- Left: Config (same sliders) -->
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--accent-primary); font-weight:700;">Bostadsvärde</span>
+                            <span id="personal-property-value-label" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">5 000 000 kr</span>
+                        </div>
+                        <input type="range" id="personal-property-value" min="500000" max="15000000" step="100000" value="5000000" style="width:100%;accent-color:var(--accent-primary);">
                     </div>
-                    <span id="rates-freshness-badge" style="font-size:0.7rem;padding:3px 10px;border-radius:12px;font-family:'JetBrains Mono',monospace;white-space:nowrap;">Laddar...</span>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--accent-primary); font-weight:700;">Lånebelopp</span>
+                            <span id="personal-mortgage-amount-label" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">3 000 000 kr</span>
+                        </div>
+                        <input type="range" id="personal-mortgage-amount" min="100000" max="10000000" step="100000" value="3000000" style="width:100%;accent-color:var(--accent-primary);">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px;">
+                        <span style="font-size:0.8rem; color:var(--text-muted);">BELÅNINGSGRAD</span>
+                        <span id="personal-ltv-display" style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.1rem; color:var(--accent-primary);">60%</span>
+                    </div>
+                    <div style="padding:12px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px;">
+                        <p style="color:var(--text-muted); font-size:0.75rem; margin:0;">📌 Personlig ränta baseras på din belåningsgrad och kalibreras veckovis mot bankernas online-kalkylatorer.</p>
+                    </div>
+                </div>
+                <!-- Right: Personal Rate Cards -->
+                <div>
+                    <h3 style="font-size:1rem; margin:0 0 4px; color:#00ff88;">🎯 Din Personliga Ränta</h3>
+                    <p style="color:var(--text-muted); font-size:0.75rem; margin:0 0 12px;">Baserat på din belåningsgrad — de bästa erbjudandena för dig just nu</p>
+                    <div id="personal-rate-cards" style="display:flex; flex-direction:column; gap:8px;">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div id="personal-rate-meta" style="margin-top:8px;">
+                        <span style="font-size:0.65rem; color:var(--text-muted); font-style:italic;" id="discount-curves-freshness">Laddar kalibrering...</span>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div id="compare-mortgage-table-container" style="margin-top:16px">
-                <!-- Populated by JS -->
-            </div>
-            
-            <div id="compare-mortgage-history-container" style="margin-top:16px; display:none;">
+        <!-- ═══════ TAB 3: HISTORIK & ANALYS (FULL WIDTH) ═══════ -->
+        <div id="mtab-history" class="mortgage-tab-content" style="display:none;">
+            <!-- Chart -->
+            <div id="compare-mortgage-history-container">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <p style="color:var(--text-muted);font-size:0.8rem;margin:0;">Jämförelse av historiska räntor. <span style="color:var(--accent-primary);">Klicka på bankernas namn under grafen för att visa/dölja fler!</span></p>
+                    <p style="color:var(--text-muted); font-size:0.8rem; margin:0;">Historiska snitträntor per bank. <span style="color:var(--accent-primary);">Klicka på bankernas namn under grafen för att visa/dölja fler!</span></p>
                     <div id="history-zoom-controls" style="display:flex; gap:6px;">
-                        <button class="zoom-btn" data-years="1" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">1 År</button>
-                        <button class="zoom-btn" data-years="3" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">3 År</button>
-                        <button class="zoom-btn active" data-years="5" style="background:var(--accent-primary);border:1px solid var(--accent-primary);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">5 År</button>
-                        <button class="zoom-btn" data-years="10" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:2px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">Max</button>
+                        <button class="zoom-btn" data-years="1" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;">1 År</button>
+                        <button class="zoom-btn" data-years="3" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;">3 År</button>
+                        <button class="zoom-btn active" data-years="5" style="background:var(--accent-primary);border:1px solid var(--accent-primary);color:#fff;padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;">5 År</button>
+                        <button class="zoom-btn" data-years="10" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;">Max</button>
                     </div>
                 </div>
-                <div style="position:relative; height:350px; width:100%;">
+                <div style="position:relative; height:420px; width:100%;">
                     <canvas id="mortgage-history-chart"></canvas>
                 </div>
             </div>
 
-            <!-- Analysis panels — always visible regardless of tab -->
-            <div id="history-insights-panel" style="margin-top:16px; padding:16px; background:var(--bg-secondary); border-left:3px solid var(--accent-primary); border-radius:4px;">
-                <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:var(--accent-primary); display:flex; align-items:center; gap:6px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                    Historisk Bankanalys
-                </h4>
-                <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
-                    <li>Laddar insikter...</li>
-                </ul>
-            </div>
-            <!-- Bank Profiles Panel -->
-            <div id="bank-profiles-panel" style="margin-top:16px; padding:16px; background:var(--bg-secondary); border-left:3px solid #ff9900; border-radius:4px;">
-                <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#ff9900; display:flex; align-items:center; gap:6px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    Bankprofiler — Sammanfattning över alla löptider
-                </h4>
-                <div id="bank-profiles-list" style="color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
-                    Laddar bankprofiler...
+            <!-- Analysis panels side by side -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;">
+                <!-- Left: Historisk Bankanalys -->
+                <div id="history-insights-panel" style="padding:16px; background:var(--bg-secondary); border-left:3px solid var(--accent-primary); border-radius:4px;">
+                    <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:var(--accent-primary); display:flex; align-items:center; gap:6px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        Historisk Bankanalys
+                    </h4>
+                    <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
+                        <li>Laddar insikter...</li>
+                    </ul>
+                </div>
+                <!-- Right: Bankprofiler -->
+                <div id="bank-profiles-panel" style="padding:16px; background:var(--bg-secondary); border-left:3px solid #ff9900; border-radius:4px;">
+                    <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#ff9900; display:flex; align-items:center; gap:6px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Bankprofiler — Alla löptider
+                    </h4>
+                    <div id="bank-profiles-list" style="color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
+                        Laddar bankprofiler...
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
 
     <!-- ═══════ SCRIPTS ═══════ -->
