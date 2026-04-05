@@ -5,7 +5,8 @@ const SAVINGS_ACCOUNTS = [
     // ════════ RÖRLIGT (FRIA UTTAG) ════════
     // Storbanker
     { id: "shb_rorligt", name: "Handelsbanken (E-kapitalkonto)", rate: 0.00, type: "flexible", guarantee: true, isBigBank: true },
-    { id: "swedbank_rorligt", name: "Swedbank (e-sparkonto)", rate: 2.00, type: "flexible", guarantee: true, isBigBank: true },
+    { id: "swedbank_rorligt", name: "Swedbank (e-sparkonto)", rate: 1.60, type: "flexible", guarantee: true, isBigBank: true },
+    { id: "swedbank_kapital", name: "Swedbank (Sparkapitalkonto)", rate: 2.55, type: "flexible", guarantee: true, isBigBank: true }, // Maxränta
     { id: "seb_rorligt", name: "SEB (Enkla sparkontot)", rate: 2.00, type: "flexible", guarantee: true, isBigBank: true },
     { id: "storbank_lon", name: "Generellt Lönekonto", rate: 0.00, type: "flexible", guarantee: true, isBigBank: true },
 
