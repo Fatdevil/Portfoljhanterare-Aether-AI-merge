@@ -1798,6 +1798,25 @@ const App = {
         // ── Step 2: Rank banks ──
         const ranked = [...bankAnalyses].sort((a, b) => a.avgDiffAll - b.avgDiffAll); // Lowest diff = cheapest
         
+        // Binding type label
+        const bindingLabels = {
+            'variable': 'Rörligt (3 mån)',
+            'fixed_1y': '1 År bunden',
+            'fixed_2y': '2 År bunden',
+            'fixed_3y': '3 År bunden',
+            'fixed_5y': '5 År bunden'
+        };
+        const bindLabel = bindingLabels[binding] || binding;
+        
+        // Find the date range across all analyzed banks
+        const firstDataMonth = months.find((m, i) => {
+            return ranked.some(bank => {
+                const rates = currentData[bank.name];
+                return rates && rates[i] !== null;
+            });
+        }) || months[0];
+        const lastDataMonth = months[N - 1];
+        
         // ── Step 3: Generate per-bank verdict ──
         let html = '';
         
@@ -1806,7 +1825,7 @@ const App = {
         const worstName = ranked[ranked.length - 1].name;
         
         html += `<li style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">
-            <b>📊 Ranking (baserat på historiskt snittavvikelse mot marknaden):</b><br>
+            <b>📊 Ranking för ${bindLabel}</b> <span style="opacity:0.5;font-size:0.75rem;">(${firstDataMonth} → ${lastDataMonth}, jämfört med SCB marknadssnitt)</span><br>
             <span style="color:#00ff88;">🥇 ${ranked[0].name}</span>`;
         if (ranked.length > 1) html += ` · <span style="color:#00ccff;">🥈 ${ranked[1].name}</span>`;
         if (ranked.length > 2) html += ` · <span style="color:#ff9900;">🥉 ${ranked[2].name}</span>`;
