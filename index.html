@@ -662,13 +662,42 @@
                 <button class="tax-btn" data-type="fixed_5y" style="flex:1">5 År</button>
             </div>
 
-            <!-- Mortgage Input -->
+            <!-- Bostadsvärde -->
             <div class="panel-header" style="margin-top:16px">
+                <span class="panel-title">Bostadsvärde</span>
+                <span id="compare-property-value-label" style="float:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">5 000 000 kr</span>
+            </div>
+            <div class="panel-section" style="padding-top:10px">
+                <input type="range" id="compare-property-value" min="500000" max="15000000" step="100000" value="5000000" style="width:100%;accent-color:var(--accent-primary);">
+            </div>
+
+            <!-- Lånebelopp -->
+            <div class="panel-header" style="margin-top:12px">
                 <span class="panel-title">Lånebelopp</span>
                 <span id="compare-mortgage-amount-label" style="float:right; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-primary);">3 000 000 kr</span>
             </div>
             <div class="panel-section" style="padding-top:10px">
                 <input type="range" id="compare-mortgage-amount" min="100000" max="10000000" step="100000" value="3000000" style="width:100%;accent-color:var(--accent-primary);">
+            </div>
+
+            <!-- LTV Indicator -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:8px;">
+                <span style="font-size:0.8rem;color:var(--text-muted);">BELÅNINGSGRAD</span>
+                <span id="compare-ltv-display" style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1rem;color:var(--accent-primary);">60%</span>
+            </div>
+
+            <!-- PERSONLIG RÄNTA SECTION -->
+            <div class="panel-header" style="margin-top:16px">
+                <span class="panel-title" style="color:#00ff88;">🎯 Personlig Ränta</span>
+            </div>
+            <div id="personal-rate-container" style="margin-top:8px;">
+                <p style="color:var(--text-muted);font-size:0.7rem;margin:0 0 8px;">Baserat på din belåningsgrad — kalibreras veckovis mot bankernas kalkylatorer</p>
+                <div id="personal-rate-cards" style="display:flex;flex-direction:column;gap:6px;">
+                    <!-- Populated by JS -->
+                </div>
+                <div id="personal-rate-meta" style="margin-top:6px;">
+                    <span style="font-size:0.65rem;color:var(--text-muted);font-style:italic;" id="discount-curves-freshness">Laddar kalibrering...</span>
+                </div>
             </div>
             
             <div class="panel-header" style="margin-top:16px">
@@ -720,6 +749,7 @@
     <script src="js/data.js"></script>
     <script src="js/savings_data.js"></script>
     <script src="js/mortgage_banks_data.js"></script>
+    <script src="js/discount_curves.js"></script>
     <script src="js/matrix.js"></script>
     <script src="js/yahoo.js"></script>
     <script src="js/optimizer.js"></script>

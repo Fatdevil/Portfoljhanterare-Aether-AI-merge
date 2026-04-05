@@ -7,6 +7,7 @@ const MORTGAGE_BANKS = [
     //  RÖRLIG (3 MÅN) — Listränta & Snittränta
     // ═══════════════════════════════════════════
     {"id": "sbab_m3", "name": "SBAB", "type": "variable", "listRate": 3.2, "avgRate": 2.65, "isBigBank": false},
+    {"id": "ica_m3", "name": "ICA Banken", "type": "variable", "listRate": 3.48, "avgRate": 2.7, "isBigBank": false},
     {"id": "lansforsakringar_m3", "name": "Länsförsäkringar", "type": "variable", "listRate": 3.84, "avgRate": 2.65, "isBigBank": false},
     {"id": "swedbank_m3", "name": "Swedbank", "type": "variable", "listRate": 3.94, "avgRate": 2.75, "isBigBank": true},
     {"id": "seb_m3", "name": "SEB", "type": "variable", "listRate": 3.99, "avgRate": 2.63, "isBigBank": true},
@@ -21,6 +22,7 @@ const MORTGAGE_BANKS = [
     {"id": "sbab_1y", "name": "SBAB", "type": "fixed_1y", "listRate": 3.62, "avgRate": 2.55, "isBigBank": false},
     {"id": "lansforsakringar_1y", "name": "Länsförsäkringar", "type": "fixed_1y", "listRate": 3.69, "avgRate": 2.6, "isBigBank": false},
     {"id": "seb_1y", "name": "SEB", "type": "fixed_1y", "listRate": 3.99, "avgRate": 2.7, "isBigBank": true},
+    {"id": "ica_1y", "name": "ICA Banken", "type": "fixed_1y", "listRate": 4.0, "avgRate": 2.7, "isBigBank": false},
     {"id": "nordea_1y", "name": "Nordea", "type": "fixed_1y", "listRate": 4.05, "avgRate": 2.7, "isBigBank": true},
     {"id": "skandia_1y", "name": "Skandiabanken", "type": "fixed_1y", "listRate": 4.08, "avgRate": 2.65, "isBigBank": false},
     {"id": "handelsbanken_1y", "name": "Handelsbanken", "type": "fixed_1y", "listRate": 4.15, "avgRate": 2.75, "isBigBank": true},
@@ -36,6 +38,7 @@ const MORTGAGE_BANKS = [
     {"id": "sbab_2y", "name": "SBAB", "type": "fixed_2y", "listRate": 3.84, "avgRate": 2.65, "isBigBank": false},
     {"id": "nordea_2y", "name": "Nordea", "type": "fixed_2y", "listRate": 3.89, "avgRate": 2.6, "isBigBank": true},
     {"id": "skandia_2y", "name": "Skandiabanken", "type": "fixed_2y", "listRate": 4.27, "avgRate": 2.8, "isBigBank": false},
+    {"id": "ica_2y", "name": "ICA Banken", "type": "fixed_2y", "listRate": 4.3, "avgRate": 2.8, "isBigBank": false},
     // ═══════════════════════════════════════════
     //  BUNDEN 3 ÅR — Listränta & Snittränta
     // ═══════════════════════════════════════════
@@ -47,6 +50,7 @@ const MORTGAGE_BANKS = [
     {"id": "swedbank_3y", "name": "Swedbank", "type": "fixed_3y", "listRate": 3.89, "avgRate": 2.7, "isBigBank": true},
     {"id": "sbab_3y", "name": "SBAB", "type": "fixed_3y", "listRate": 3.99, "avgRate": 2.65, "isBigBank": false},
     {"id": "skandia_3y", "name": "Skandiabanken", "type": "fixed_3y", "listRate": 4.39, "avgRate": 2.85, "isBigBank": false},
+    {"id": "ica_3y", "name": "ICA Banken", "type": "fixed_3y", "listRate": 4.5, "avgRate": 2.9, "isBigBank": false},
     // ═══════════════════════════════════════════
     //  BUNDEN 5 ÅR — Listränta & Snittränta
     // ═══════════════════════════════════════════
@@ -58,6 +62,7 @@ const MORTGAGE_BANKS = [
     {"id": "nordea_5y", "name": "Nordea", "type": "fixed_5y", "listRate": 4.09, "avgRate": 2.7, "isBigBank": true},
     {"id": "sbab_5y", "name": "SBAB", "type": "fixed_5y", "listRate": 4.19, "avgRate": 2.75, "isBigBank": false},
     {"id": "skandia_5y", "name": "Skandiabanken", "type": "fixed_5y", "listRate": 4.58, "avgRate": 2.95, "isBigBank": false},
+    {"id": "ica_5y", "name": "ICA Banken", "type": "fixed_5y", "listRate": 4.87, "avgRate": 3.1, "isBigBank": false},
 ];
 
 window.MORTGAGE_BANKS = MORTGAGE_BANKS;
@@ -68,6 +73,6 @@ const MORTGAGE_BANKS_META = {
     "lastVerified": "2026-04-05",
     "sources": "sbab.se, nordea.se, handelsbanken.se, swedbank.se, seb.se, lansforsakringar.se, skandia.se, danskebank.se, SCB FM5001C",
     "avgRateSource": "SCB Finansmarknadsstatistik — nya avtal",
-    "totalBanks": 40
+    "totalBanks": 45
 };
 window.MORTGAGE_BANKS_META = MORTGAGE_BANKS_META;

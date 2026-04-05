@@ -1,16 +1,24 @@
-name: 📊 Uppdatera Bolåneräntor
+name: 📊 Uppdatera Bolåneräntor & Kalibrera Avdragskurvor
 
 on:
   schedule:
-    # Kör varje dag 07:00 CET (05:00 UTC)
+    # Daglig ränteuppdatering: 07:00 CET (05:00 UTC)
     - cron: '0 5 * * *'
   workflow_dispatch:
-    # Möjliggör manuell trigger från GitHub UI
+    inputs:
+      calibrate:
+        description: 'Kör Playwright-kalibrering av avdragskurvor'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: write
 
 jobs:
+  # ═══════════════════════════════════════════
+  #  JOB 1: Daglig ränteuppdatering
+  # ═══════════════════════════════════════════
   update-rates:
     runs-on: ubuntu-latest
     steps:
@@ -40,4 +48,52 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add js/mortgage_banks_data.js js/savings_data.js
           git commit -m "🔄 Auto-uppdatering bolåneräntor $(date +'%Y-%m-%d')"
+          git push
+
+  # ═══════════════════════════════════════════
+  #  JOB 2: Veckovis kalibrering (varje måndag)
+  #  Testar SBAB, Skandia, ICA kalkylatorer
+  # ═══════════════════════════════════════════
+  calibrate-discount-curves:
+    runs-on: ubuntu-latest
+    # Kör varje måndag ELLER vid manuell trigger med calibrate=true
+    if: github.event.schedule == '0 5 * * 1' || github.event.inputs.calibrate == 'true'
+    needs: update-rates
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Hämta senaste ändringar från update-rates jobbet
+          ref: main
+
+      - name: 🔄 Pull latest changes
+        run: git pull origin main
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install playwright
+          python -m playwright install chromium
+          python -m playwright install-deps
+
+      - name: 🎯 Calibrate discount curves
+        run: python scripts/calibrate_discount_curves.py
+        timeout-minutes: 10
+
+      - name: 📝 Check for changes
+        id: check-curves
+        run: |
+          git diff --quiet js/discount_curves.js || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Commit and push
+        if: steps.check-curves.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add js/discount_curves.js
+          git commit -m "🎯 Auto-kalibrering avdragskurvor $(date +'%Y-%m-%d')"
           git push

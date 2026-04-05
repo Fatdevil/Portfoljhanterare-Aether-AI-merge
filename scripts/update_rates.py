@@ -55,6 +55,7 @@ FALLBACK_LISTRATES = {
     "Handelsbanken":     {"variable": 3.99, "fixed_1y": 4.15, "fixed_2y": 3.49, "fixed_3y": 3.85, "fixed_5y": 3.89},
     "Skandiabanken":     {"variable": 4.08, "fixed_1y": 4.08, "fixed_2y": 4.27, "fixed_3y": 4.39, "fixed_5y": 4.58},
     "Danske Bank":       {"variable": 4.39, "fixed_1y": 3.49, "fixed_2y": 3.66, "fixed_3y": 3.79, "fixed_5y": 3.94},
+    "ICA Banken":        {"variable": 3.48, "fixed_1y": 4.00, "fixed_2y": 4.30, "fixed_3y": 4.50, "fixed_5y": 4.87},
 }
 
 FALLBACK_AVGRATES = {
@@ -66,6 +67,7 @@ FALLBACK_AVGRATES = {
     "Handelsbanken":     {"variable": 2.63, "fixed_1y": 2.75, "fixed_2y": 2.55, "fixed_3y": 2.60, "fixed_5y": 2.65},
     "Skandiabanken":     {"variable": 2.70, "fixed_1y": 2.65, "fixed_2y": 2.80, "fixed_3y": 2.85, "fixed_5y": 2.95},
     "Danske Bank":       {"variable": 2.80, "fixed_1y": 2.55, "fixed_2y": 2.55, "fixed_3y": 2.60, "fixed_5y": 2.65},
+    "ICA Banken":        {"variable": 2.70, "fixed_1y": 2.70, "fixed_2y": 2.80, "fixed_3y": 2.90, "fixed_5y": 3.10},
 }
 
 BANK_CONFIG = {
@@ -77,6 +79,7 @@ BANK_CONFIG = {
     "Handelsbanken":     {"isBigBank": True,   "prefix": "handelsbanken"},
     "Skandiabanken":     {"isBigBank": False,  "prefix": "skandia"},
     "Danske Bank":       {"isBigBank": True,   "prefix": "danske"},
+    "ICA Banken":        {"isBigBank": False,  "prefix": "ica"},
 }
 
 BINDING_SUFFIXES = {

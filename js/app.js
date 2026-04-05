@@ -1564,15 +1564,30 @@ const App = {
                 this._compareMortgageActiveType = btn.dataset.type;
                 this.populateCompareMortgageSelect();
                 this.updateCompareMortgageView();
+                this.updatePersonalRates();
             });
         });
 
         this.populateCompareMortgageSelect();
 
-        // Bind events
+        // Bind property value slider
+        const propSlider = document.getElementById('compare-property-value');
+        if (propSlider) {
+            propSlider.addEventListener('input', (e) => {
+                const v = parseInt(e.target.value);
+                document.getElementById('compare-property-value-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+                this.updateLTV();
+                this.updatePersonalRates();
+                this.updateCompareMortgageView();
+            });
+        }
+
+        // Bind loan amount slider
         document.getElementById('compare-mortgage-amount').addEventListener('input', (e) => {
             const v = parseInt(e.target.value);
             document.getElementById('compare-mortgage-amount-label').textContent = v.toLocaleString('sv-SE') + ' kr';
+            this.updateLTV();
+            this.updatePersonalRates();
             this.updateCompareMortgageView();
         });
 
@@ -1580,9 +1595,124 @@ const App = {
             this.updateCompareMortgageView();
         });
 
+        // Initial render
+        this.updateLTV();
+        this.updatePersonalRates();
+        this.renderDiscountCurvesFreshness();
         this.updateCompareMortgageView();
         this._compareMortgageInit = true;
     },
+
+    // ── LTV Calculation ──
+    updateLTV() {
+        const loan = parseInt(document.getElementById('compare-mortgage-amount')?.value || 3000000);
+        const prop = parseInt(document.getElementById('compare-property-value')?.value || 5000000);
+        const ltv = Math.round((loan / prop) * 100);
+        const ltvEl = document.getElementById('compare-ltv-display');
+        if (ltvEl) {
+            ltvEl.textContent = ltv + '%';
+            // Color code
+            if (ltv <= 50) {
+                ltvEl.style.color = '#00ff88';
+            } else if (ltv <= 70) {
+                ltvEl.style.color = '#00ccff';
+            } else if (ltv <= 75) {
+                ltvEl.style.color = '#ffcc00';
+            } else {
+                ltvEl.style.color = '#ff3366';
+            }
+        }
+        return ltv;
+    },
+
+    // ── Interpolate discount from curve ──
+    interpolateDiscount(curve, ltv) {
+        if (!curve) return 0;
+
+        const points = Object.keys(curve).map(Number).sort((a, b) => a - b);
+        const values = points.map(p => curve[String(p)]);
+
+        // Clamp to range
+        if (ltv <= points[0]) return values[0];
+        if (ltv >= points[points.length - 1]) return values[values.length - 1];
+
+        // Linear interpolation
+        for (let i = 0; i < points.length - 1; i++) {
+            if (ltv >= points[i] && ltv <= points[i + 1]) {
+                const t = (ltv - points[i]) / (points[i + 1] - points[i]);
+                return values[i] + t * (values[i + 1] - values[i]);
+            }
+        }
+        return 0;
+    },
+
+    // ── Personal Rate Cards ──
+    updatePersonalRates() {
+        const container = document.getElementById('personal-rate-cards');
+        if (!container || !window.DISCOUNT_CURVES) return;
+
+        const ltv = this.updateLTV();
+        const type = this._compareMortgageActiveType;
+        const loan = parseInt(document.getElementById('compare-mortgage-amount')?.value || 3000000);
+
+        const results = [];
+
+        for (const [bankName, curves] of Object.entries(window.DISCOUNT_CURVES)) {
+            const curve = curves[type];
+            if (!curve) continue;
+
+            // Find listRate for this bank + type
+            const bankEntry = window.MORTGAGE_BANKS.find(b => b.name === bankName && b.type === type);
+            if (!bankEntry) continue;
+
+            const discount = this.interpolateDiscount(curve, ltv);
+            const personalRate = Math.max(bankEntry.listRate - discount, 0.5); // Floor at 0.5%
+            const yearlyCost = loan * (personalRate / 100);
+            const monthlyCost = Math.round(yearlyCost / 12);
+
+            results.push({
+                name: bankName,
+                listRate: bankEntry.listRate,
+                discount: discount,
+                personalRate: personalRate,
+                monthlyCost: monthlyCost
+            });
+        }
+
+        // Sort by personal rate (cheapest first)
+        results.sort((a, b) => a.personalRate - b.personalRate);
+
+        if (results.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">Inga avdragskurvor för denna bindningstid</p>';
+            return;
+        }
+
+        container.innerHTML = results.map((r, i) => {
+            const rateColor = i === 0 ? '#00ff88' : (i === 1 ? '#00ccff' : 'var(--text-primary)');
+            const badge = i === 0 ? ' <span style="background:#00ff8822;color:#00ff88;padding:1px 6px;border-radius:4px;font-size:0.6rem;margin-left:4px;">BÄST</span>' : '';
+            return `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-tertiary);border:1px solid ${i === 0 ? '#00ff8833' : 'var(--border-color)'};border-radius:8px;">
+                    <div>
+                        <span style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">${r.name}</span>${badge}
+                        <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">List ${r.listRate.toFixed(2)}% − avdrag ${r.discount.toFixed(2)}%</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1rem;color:${rateColor};">${r.personalRate.toFixed(2)}%</div>
+                        <div style="font-size:0.65rem;color:var(--text-muted);">${r.monthlyCost.toLocaleString('sv-SE')} kr/mån</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    renderDiscountCurvesFreshness() {
+        const el = document.getElementById('discount-curves-freshness');
+        if (!el || !window.DISCOUNT_CURVES_META) return;
+        const meta = window.DISCOUNT_CURVES_META;
+        const method = meta.method === 'playwright_auto' ? 'Automatisk (Playwright)' : 'Manuell initial';
+        el.textContent = `Kalibrerad: ${meta.lastCalibrated} · Metod: ${method} · Banker: ${meta.banks.join(', ')}`;
+    },
+
 
     populateCompareMortgageSelect() {
         const bankSelect = document.getElementById('compare-mortgage-current-bank');
