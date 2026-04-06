@@ -1351,6 +1351,25 @@ const App = {
         });
         document.getElementById('sim-liquidate').addEventListener('change', () => this.runTaxSimulation());
         document.getElementById('sim-capital').addEventListener('change', () => this.runTaxSimulation());
+
+        // ISK fribelopp toggle
+        const fribToggle = document.getElementById('isk-disable-fribelopp');
+        if (fribToggle) {
+            fribToggle.addEventListener('change', (e) => {
+                const disabled = e.target.checked;
+                TaxEngine.ISK.freeThreshold = disabled ? 0 : 300000;
+
+                // Update displays
+                const fribDisplay = document.getElementById('isk-fribelopp-display');
+                if (fribDisplay) {
+                    fribDisplay.textContent = disabled ? '0 kr (utnyttjat)' : '300 000 kr';
+                    fribDisplay.style.color = disabled ? 'var(--negative)' : '';
+                }
+
+                // Re-run simulation if active
+                this.runTaxSimulation();
+            });
+        }
     },
 
     /* ═══════ SAVINGS TAB ═══════ */
