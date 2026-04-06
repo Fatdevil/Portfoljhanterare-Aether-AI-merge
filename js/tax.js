@@ -4,12 +4,12 @@
 
 const TaxEngine = {
 
-    /* ── ISK rules 2025 ─────────────────────────────────────────────────── */
+    /* ── ISK rules 2026 ─────────────────────────────────────────────────── */
     ISK: {
         statslaneRanta: 0.0196,
         schablonRanta: 0.0296,       // statslåneränta + 1%
         taxRate: 0.30,               // kapitalskatt
-        freeThreshold: 150000,       // skattefri grundnivå 2025
+        freeThreshold: 300000,       // skattefri grundnivå 2026 (höjd från 150k)
         effectiveRate: 0.30 * 0.0296, // ≈ 0.888%
     },
 
