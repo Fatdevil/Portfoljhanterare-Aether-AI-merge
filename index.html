@@ -300,7 +300,7 @@
                     Simulerar vad som händer om du säljer din depå och flyttar kapitalet till ISK. Använd din portföljs värde och anskaffningsvärde ovan, eller ange egna siffror.
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
                     <div>
                         <label style="font-size:0.65rem;color:var(--text-muted)">Depåvärde idag</label>
                         <input type="number" id="depa-migrate-value" value="500000" step="50000" min="10000" style="width:100%;margin-top:2px">
@@ -318,6 +318,11 @@
                         <label style="font-size:0.65rem;color:var(--text-muted)">Tidshorisont</label>
                         <input type="range" id="depa-migrate-years" min="1" max="50" value="20" step="1" style="width:100%;margin-top:6px">
                         <div style="text-align:center;font-size:0.65rem;color:var(--text-muted)" id="depa-migrate-years-display">20 år</div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--negative)">📉 Sälj depå efter</label>
+                        <input type="range" id="depa-migrate-sell-year" min="1" max="50" value="20" step="1" style="width:100%;margin-top:6px">
+                        <div style="text-align:center;font-size:0.65rem;color:var(--negative)" id="depa-migrate-sell-display">Vid slutet</div>
                     </div>
                 </div>
 

@@ -119,12 +119,19 @@ const TaxEngine = {
 
         for (let y = 1; y <= years; y++) {
             // ── ISK ──
-            // Growth
-            const iskGrowth = iskVal * annualReturn;
-            iskVal += iskGrowth;
+            // Quarterly average for capital base (regulatory requirement)
+            const qReturn = Math.pow(1 + annualReturn, 0.25) - 1;
+            const q1 = iskVal;
+            const q2 = iskVal * (1 + qReturn);
+            const q3 = q2 * (1 + qReturn);
+            const q4 = q3 * (1 + qReturn);
+            const avgQuarterlyValue = (q1 + q2 + q3 + q4) / 4;
 
-            // ISK tax (on avg value, simplified)
-            const iskTaxInfo = this.calculateISKTax(iskVal);
+            // Full year growth
+            iskVal *= (1 + annualReturn);
+
+            // ISK tax on quarterly average
+            const iskTaxInfo = this.calculateISKTax(avgQuarterlyValue);
             iskVal -= iskTaxInfo.tax;
 
             iskValues.push(iskVal);
@@ -143,14 +150,13 @@ const TaxEngine = {
             // Reinvested dividends become new capital, so they increase the cost basis
             depaCostBasis += reinvestment;
 
-            // Calculate effective cost basis using Schablonmetoden (20% rule)
-            const effectiveCostBasis = Math.max(depaCostBasis, depaVal * 0.20);
-            
             // Yearly rebalancing cost
             const turnover = (liquidateFinalYear && y === years) ? 1.0 : turnoverRate;
             const soldAmount = depaVal * turnover;
-            const soldCostBasis = effectiveCostBasis * turnover;
-            const rebalanceTax = Math.max(0, (soldAmount - soldCostBasis) * this.DEPA.capitalGainsTax);
+            // Schablonmetoden: 20% of SALE PROCEEDS, not market value
+            const schablonAvdrag = soldAmount * 0.20;
+            const effectiveCostBasis = Math.max(depaCostBasis * turnover, schablonAvdrag);
+            const rebalanceTax = Math.max(0, (soldAmount - effectiveCostBasis) * this.DEPA.capitalGainsTax);
             depaVal -= rebalanceTax;
 
             // Update cost basis
@@ -242,39 +248,50 @@ const TaxEngine = {
 
     /**
      * Simulate Depå → ISK migration
-     * Compares keeping money in Depå vs selling and moving to ISK
-     * @param {number} currentValue  — current depå value
-     * @param {number} costBasis     — original purchase cost (GAV)
-     * @param {number} annualReturn  — expected annual return
-     * @param {number} dividend      — annual dividend yield
-     * @param {number} years         — simulation horizon
-     * @returns {Object} comparison data for chart and table
+     * Scenario A: Keep depå, sell at sellYear → see the tax cliff
+     * Scenario B: Sell now → pay tax → invest in ISK
      */
-    simulateDepaMigration(currentValue, costBasis, annualReturn, dividend = 0.02, years = 30) {
+    simulateDepaMigration(currentValue, costBasis, annualReturn, dividend = 0.02, years = 30, sellYear = null) {
+        if (sellYear === null) sellYear = years;
+
         // ── Scenario A: Keep in Depå ──
-        // Grows in depå, dividends taxed yearly, capital gains taxed at sale
-        const depaValues = [currentValue];
+        const depaGrossValues = [currentValue];
+        const depaNetValues = [currentValue];
         let depaVal = currentValue;
         let depaCB = costBasis;
 
         for (let y = 1; y <= years; y++) {
-            const divs = depaVal * dividend;
-            const divTax = divs * this.DEPA.dividendTax;
-            const priceReturn = annualReturn - dividend;
-            const reinvest = divs - divTax;
-            depaVal = depaVal * (1 + priceReturn) + reinvest;
-            depaCB += reinvest;
-            depaValues.push(depaVal);
+            if (y <= sellYear) {
+                const divs = depaVal * dividend;
+                const divTax = divs * this.DEPA.dividendTax;
+                const priceReturn = annualReturn - dividend;
+                const reinvest = divs - divTax;
+                depaVal = depaVal * (1 + priceReturn) + reinvest;
+                depaCB += reinvest;
+                depaGrossValues.push(depaVal);
+
+                // Net if sold this year (schablonmetod: 20% of sale proceeds)
+                const effectiveCB = Math.max(depaCB, depaVal * 0.20);
+                const g = Math.max(0, depaVal - effectiveCB);
+                depaNetValues.push(depaVal - g * this.DEPA.capitalGainsTax);
+            } else {
+                // After sell — flat at net value
+                const soldNet = depaNetValues[sellYear];
+                depaGrossValues.push(soldNet);
+                depaNetValues.push(soldNet);
+            }
         }
 
-        // Final depå value after selling (capital gains tax)
-        const depaFinalGain = Math.max(0, depaValues[years] - Math.max(depaCB, depaValues[years] * 0.20));
-        const depaFinalTax = depaFinalGain * this.DEPA.capitalGainsTax;
-        const depaFinalNet = depaValues[years] - depaFinalTax;
+        // Tax at sell year
+        const sellYearGross = depaGrossValues[Math.min(sellYear, years)];
+        const sellEffCB = Math.max(depaCB, sellYearGross * 0.20);
+        const depaSellGain = Math.max(0, sellYearGross - sellEffCB);
+        const depaSellTax = depaSellGain * this.DEPA.capitalGainsTax;
+        const depaSellNet = sellYearGross - depaSellTax;
 
         // ── Scenario B: Sell now → ISK ──
-        // Pay tax on gains, invest remainder in ISK
-        const gain = Math.max(0, currentValue - Math.max(costBasis, currentValue * 0.20));
+        const effectiveCBNow = Math.max(costBasis, currentValue * 0.20);
+        const gain = Math.max(0, currentValue - effectiveCBNow);
         const sellTax = gain * this.DEPA.capitalGainsTax;
         const iskStartCapital = currentValue - sellTax;
 
@@ -282,56 +299,63 @@ const TaxEngine = {
         let iskVal = iskStartCapital;
 
         for (let y = 1; y <= years; y++) {
+            // Quarterly average for ISK capital base
+            const qReturn = Math.pow(1 + annualReturn, 0.25) - 1;
+            const q1 = iskVal;
+            const q2 = iskVal * (1 + qReturn);
+            const q3 = q2 * (1 + qReturn);
+            const q4 = q3 * (1 + qReturn);
+            const avgQ = (q1 + q2 + q3 + q4) / 4;
+
             iskVal *= (1 + annualReturn);
-            const iskTaxInfo = this.calculateISKTax(iskVal);
+            const iskTaxInfo = this.calculateISKTax(avgQ);
             iskVal -= iskTaxInfo.tax;
             iskValues.push(iskVal);
         }
 
-        // Find breakeven year
-        let breakevenYear = -1;
-        for (let y = 1; y <= years; y++) {
-            // Compare ISK value vs Depå value (Depå needs to be net of future tax)
-            // We compare ISK (already net) vs Depå at current point minus estimated exit tax
-            const depaAtY = depaValues[y];
-            const depaCBAtY = costBasis + (depaAtY - currentValue) * 0.3; // rough CB tracking
-            const depaGainAtY = Math.max(0, depaAtY - Math.max(costBasis, depaAtY * 0.20));
-            const depaTaxAtY = depaGainAtY * this.DEPA.capitalGainsTax;
-            const depaNetAtY = depaAtY - depaTaxAtY;
-
-            if (breakevenYear === -1 && iskValues[y] >= depaNetAtY) {
-                if (y === 1) {
-                    breakevenYear = 1;
-                } else {
-                    // Previous year values for interpolation
-                    const prevDepaNet = depaValues[y-1] - Math.max(0, depaValues[y-1] - Math.max(costBasis, depaValues[y-1] * 0.20)) * this.DEPA.capitalGainsTax;
-                    const prevDiff = prevDepaNet - iskValues[y-1];
-                    const currDiff = iskValues[y] - depaNetAtY;
-                    const fraction = prevDiff / (prevDiff + currDiff);
-                    breakevenYear = (y - 1) + Math.min(fraction, 1);
-                }
+        // ── Chart line: Depå with cliff ──
+        const depaChartValues = [];
+        for (let y = 0; y <= years; y++) {
+            if (y < sellYear) {
+                depaChartValues.push(depaGrossValues[y]);
+            } else {
+                depaChartValues.push(depaNetValues[y]); // cliff at sellYear
             }
         }
 
-        // Net values for comparison (Depå after-tax at each year)
-        const depaNetValues = depaValues.map((v, y) => {
-            if (y === 0) return v;
-            const g = Math.max(0, v - Math.max(costBasis, v * 0.20));
-            return v - g * this.DEPA.capitalGainsTax;
-        });
+        // ── Breakeven ──
+        let breakevenYear = -1;
+        for (let y = 1; y <= years; y++) {
+            if (breakevenYear === -1 && iskValues[y] >= depaNetValues[y]) {
+                if (y === 1) {
+                    breakevenYear = 1;
+                } else {
+                    const prev = depaNetValues[y-1] - iskValues[y-1];
+                    const curr = iskValues[y] - depaNetValues[y];
+                    breakevenYear = (prev + curr) > 0
+                        ? (y - 1) + Math.min(prev / (prev + curr), 1)
+                        : y;
+                }
+            }
+        }
 
         return {
             gain,
             sellTax,
             iskStartCapital,
-            depaValues,
+            depaGrossValues,
             depaNetValues,
+            depaChartValues,
             iskValues,
-            depaFinalNet,
+            depaSellNet,
+            depaSellTax,
+            depaSellGain,
+            sellYear,
             iskFinal: iskValues[years],
             breakevenYear,
             years,
-            advantage: iskValues[years] - depaFinalNet,
+            advantage: iskValues[years] - depaNetValues[years],
+            isFreeFromISKTax: iskStartCapital <= this.ISK.freeThreshold,
         };
     },
 };
