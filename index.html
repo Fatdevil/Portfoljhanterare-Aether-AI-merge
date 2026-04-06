@@ -823,6 +823,37 @@
                 </div>
             </div>
 
+            <!-- ── SCENARIO ANALYSIS ── -->
+            <div id="scenario-analysis-section" style="margin-top:20px; padding:20px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <h3 style="font-size:1rem; margin:0; color:var(--accent-tertiary);">🔮 Ränteprognos — Vad händer om?</h3>
+                        <p style="color:var(--text-muted); font-size:0.72rem; margin:4px 0 0;">Simulera en förändring av Riksbankens styrränta och se hur bankerna reagerar baserat på historiskt beteende</p>
+                    </div>
+                </div>
+
+                <!-- Riksbanken Slider -->
+                <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px; padding:12px 16px; background:var(--bg-panel); border:1px solid var(--border); border-radius:8px;">
+                    <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--accent-tertiary); font-weight:700; white-space:nowrap;">Riksbankens ränteändring</span>
+                    <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--negative);">−1.0%</span>
+                    <input type="range" id="scenario-rate-slider" min="-1.0" max="1.0" step="0.25" value="0" style="flex:1; accent-color:var(--accent-tertiary);">
+                    <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--positive);">+1.0%</span>
+                    <div style="min-width:80px; text-align:center; padding:4px 12px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px;">
+                        <span id="scenario-rate-label" style="font-family:var(--font-mono); font-weight:700; font-size:1rem; color:var(--text-primary);">0.00%</span>
+                    </div>
+                </div>
+
+                <!-- Scenario Results -->
+                <div id="scenario-results-table">
+                    <p style="color:var(--text-muted); font-size:0.8rem;">Dra i slidern ovan för att simulera...</p>
+                </div>
+
+                <!-- Scenario Insight -->
+                <div id="scenario-insight" style="margin-top:12px; padding:12px 16px; background:var(--highlight-bg); border:1px solid var(--border); border-radius:8px; display:none;">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
             <!-- Analysis panels side by side -->
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;">
                 <!-- Left: Historisk Bankanalys -->

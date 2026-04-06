@@ -1716,6 +1716,19 @@ const App = {
 
         this.renderAmortizationComparison();
 
+        // ── Scenario Analysis ──
+        const scenarioSlider = document.getElementById('scenario-rate-slider');
+        if (scenarioSlider) {
+            scenarioSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                const label = document.getElementById('scenario-rate-label');
+                const sign = val >= 0 ? '+' : '';
+                label.textContent = sign + val.toFixed(2) + '%';
+                label.style.color = val > 0 ? 'var(--negative)' : (val < 0 ? 'var(--positive)' : 'var(--text-primary)');
+                this.renderScenarioAnalysis(val);
+            });
+        }
+
         this._compareMortgageInit = true;
     },
 
@@ -2313,6 +2326,177 @@ const App = {
 
         // Also update amortization comparison
         this.renderAmortizationComparison();
+    },
+
+    renderScenarioAnalysis(rateChange) {
+        const tableEl = document.getElementById('scenario-results-table');
+        const insightEl = document.getElementById('scenario-insight');
+        if (!tableEl || !insightEl) return;
+
+        if (rateChange === 0) {
+            tableEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:16px;">Dra i slidern ovan för att simulera en ränteförändring</p>';
+            insightEl.style.display = 'none';
+            return;
+        }
+
+        const history = window.MORTGAGE_HISTORY;
+        const type = this._compareMortgageActiveType;
+        if (!history || !history.data[type]) {
+            tableEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">Ingen historisk data tillgänglig</p>';
+            return;
+        }
+
+        const bankData = history.data[type];
+        const marketData = bankData.SCB_Marknad;
+        const months = history.months;
+        const bankNames = Object.keys(bankData).filter(b => b !== 'SCB_Marknad');
+
+        // Calculate pass-through ratio for each bank
+        // Method: Over the last 3 years (36 months), measure how much each bank's
+        // rate changed relative to the market average change
+        const results = [];
+        const lookback = Math.min(36, months.length - 1);
+
+        for (const bankName of bankNames) {
+            const rates = bankData[bankName];
+            if (!rates || rates.length < lookback + 1) continue;
+
+            const currentRate = rates[rates.length - 1];
+            if (currentRate === null || currentRate === undefined) continue;
+
+            // Calculate pass-through: sum of bank changes / sum of market changes
+            let bankTotalChange = 0;
+            let marketTotalChange = 0;
+            let validPeriods = 0;
+
+            for (let i = rates.length - lookback; i < rates.length; i++) {
+                if (i <= 0) continue;
+                const bankPrev = rates[i - 1];
+                const bankCurr = rates[i];
+                const mktPrev = marketData[i - 1];
+                const mktCurr = marketData[i];
+
+                if (bankPrev == null || bankCurr == null || mktPrev == null || mktCurr == null) continue;
+
+                bankTotalChange += (bankCurr - bankPrev);
+                marketTotalChange += (mktCurr - mktPrev);
+                validPeriods++;
+            }
+
+            // Pass-through ratio: how much of market change bank follows
+            let passThrough = 1.0; // default
+            if (Math.abs(marketTotalChange) > 0.1) {
+                passThrough = bankTotalChange / marketTotalChange;
+                passThrough = Math.max(0.3, Math.min(1.5, passThrough)); // clamp
+            }
+
+            // Projected new rate
+            const projectedRate = Math.max(0.5, currentRate + (rateChange * passThrough));
+
+            // Speed: avg monthly change in same direction as market
+            let sameDirectionCount = 0;
+            let totalMonths = 0;
+            for (let i = rates.length - lookback; i < rates.length; i++) {
+                if (i <= 0) continue;
+                const bankDelta = rates[i] - (rates[i - 1] || rates[i]);
+                const mktDelta = marketData[i] - (marketData[i - 1] || marketData[i]);
+                if (bankDelta == null || mktDelta == null) continue;
+                totalMonths++;
+                if (Math.sign(bankDelta) === Math.sign(mktDelta) && Math.abs(mktDelta) > 0.01) {
+                    sameDirectionCount++;
+                }
+            }
+            const reactSpeed = totalMonths > 0 ? (sameDirectionCount / totalMonths * 100) : 50;
+
+            results.push({
+                name: bankName,
+                currentRate: currentRate,
+                projectedRate: projectedRate,
+                change: projectedRate - currentRate,
+                passThrough: passThrough,
+                reactSpeed: reactSpeed
+            });
+        }
+
+        // Sort by projected rate (cheapest first if cut, most expensive if hike)
+        if (rateChange < 0) {
+            results.sort((a, b) => a.projectedRate - b.projectedRate);
+        } else {
+            results.sort((a, b) => a.projectedRate - b.projectedRate);
+        }
+
+        const fmt = (n) => n.toLocaleString('sv-SE');
+        const isUp = rateChange > 0;
+        const changeLabel = isUp ? '📈 Räntehöjning' : '📉 Räntesänkning';
+        const medals = ['🥇', '🥈', '🥉'];
+
+        tableEl.innerHTML = `
+            <div style="margin-bottom:8px;">
+                <span style="font-size:0.75rem; font-weight:700; color:${isUp ? 'var(--negative)' : 'var(--positive)'};">${changeLabel} ${rateChange > 0 ? '+' : ''}${rateChange.toFixed(2)}%</span>
+                <span style="font-size:0.7rem; color:var(--text-muted); margin-left:8px;">— Projicerade räntor baserat på historiskt beteende (${this._compareMortgageActiveType === 'variable' ? 'rörligt' : this._compareMortgageActiveType.replace('fixed_', '') + ' bunden'})</span>
+            </div>
+            <div style="display:grid; grid-template-columns:30px 1fr 90px 90px 90px 100px 80px; gap:0; font-size:0.72rem;">
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border);">#</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border);">BANK</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">IDAG</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">PROGNOS</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">ÄNDRING</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">GENOMSLAG</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">HASTIGHET</div>
+                ${results.map((r, i) => {
+                    const medal = i < 3 ? medals[i] : `<span style="color:var(--text-muted);">${i + 1}</span>`;
+                    const rowBg = i === 0 ? 'var(--highlight-bg)' : (i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)');
+                    const changeColor = r.change < 0 ? 'var(--positive)' : (r.change > 0 ? 'var(--negative)' : 'var(--text-muted)');
+                    const progColor = i === 0 ? 'var(--positive)' : 'var(--text-primary)';
+                    const ptColor = r.passThrough > 1.1 ? 'var(--negative)' : (r.passThrough < 0.8 ? 'var(--positive)' : 'var(--text-secondary)');
+                    const speedBar = Math.round(r.reactSpeed);
+                    const speedColor = r.reactSpeed > 70 ? 'var(--positive)' : (r.reactSpeed > 50 ? 'var(--accent-tertiary)' : 'var(--text-muted)');
+                    return `
+                        <div style="padding:8px 4px; background:${rowBg}; display:flex; align-items:center;">${medal}</div>
+                        <div style="padding:8px 4px; background:${rowBg}; font-weight:${i === 0 ? '700' : '500'}; color:var(--text-primary); display:flex; align-items:center;">${r.name}</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right; font-family:var(--font-mono); color:var(--text-secondary);">${r.currentRate.toFixed(2)}%</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right; font-family:var(--font-mono); color:${progColor}; font-weight:700;">${r.projectedRate.toFixed(2)}%</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right; font-family:var(--font-mono); color:${changeColor}; font-weight:600;">${r.change >= 0 ? '+' : ''}${r.change.toFixed(2)}%</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right; font-family:var(--font-mono); color:${ptColor};">${(r.passThrough * 100).toFixed(0)}%</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right;">
+                            <div style="display:inline-block;width:40px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;vertical-align:middle;margin-right:4px;">
+                                <div style="height:100%;width:${speedBar}%;background:${speedColor};border-radius:3px;"></div>
+                            </div>
+                            <span style="font-size:0.6rem;color:var(--text-muted);">${speedBar}%</span>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+
+        // Insight
+        const fastest = [...results].sort((a, b) => b.passThrough - a.passThrough)[0];
+        const slowest = [...results].sort((a, b) => a.passThrough - b.passThrough)[0];
+        const bestForConsumer = rateChange < 0 ? fastest : slowest;
+        const worstForConsumer = rateChange < 0 ? slowest : fastest;
+
+        insightEl.style.display = 'block';
+        insightEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">
+                        ${rateChange < 0 ? '🏆 Bäst vid sänkning — reagerar snabbast:' : '🛡️ Bäst vid höjning — reagerar långsammast:'}
+                    </span>
+                    <span style="font-weight:700; color:var(--positive); margin-left:6px; font-size:0.9rem;">${bestForConsumer.name}</span>
+                    <span style="font-size:0.7rem; color:var(--text-muted); margin-left:4px;">(${(bestForConsumer.passThrough * 100).toFixed(0)}% genomslag)</span>
+                </div>
+                <div style="text-align:right;">
+                    <span style="font-size:0.7rem; color:var(--text-muted);">
+                        ${rateChange < 0 ? '⚠️ Långsammast:' : '⚠️ Dyrast vid höjning:'}
+                    </span>
+                    <span style="font-weight:600; color:var(--negative); margin-left:6px;">${worstForConsumer.name}</span>
+                    <span style="font-size:0.7rem; color:var(--text-muted); margin-left:4px;">(${(worstForConsumer.passThrough * 100).toFixed(0)}% genomslag)</span>
+                </div>
+            </div>
+            <div style="margin-top:8px; font-size:0.62rem; color:var(--text-muted);">
+                Genomslag = hur stor andel av Riksbankens ränteändring banken historiskt fört vidare till kund. >100% = överreagerar. Hastighet = hur ofta banken rör sig i samma riktning som marknaden.
+            </div>
+        `;
     },
 
     renderAmortizationComparison() {
