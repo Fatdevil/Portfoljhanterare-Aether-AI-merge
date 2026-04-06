@@ -1,5 +1,5 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
-// Uppdaterad: 2026-04-05 — Verifierade listräntor
+// Uppdaterad: 2026-04-06 — Verifierade listräntor
 // Källor: sbab.se, nordea.se, handelsbanken.se, swedbank.se, seb.se, lansforsakringar.se, skandia.se, danskebank.se, SCB FM5001C
 // Snitträntor: SCB Finansmarknadsstatistik — nya avtal
 const MORTGAGE_BANKS = [
@@ -69,8 +69,8 @@ window.MORTGAGE_BANKS = MORTGAGE_BANKS;
 
 // Metadata — used by the UI to show data freshness
 const MORTGAGE_BANKS_META = {
-    "lastUpdated": "2026-04-05",
-    "lastVerified": "2026-04-05",
+    "lastUpdated": "2026-04-06",
+    "lastVerified": "2026-04-06",
     "sources": "sbab.se, nordea.se, handelsbanken.se, swedbank.se, seb.se, lansforsakringar.se, skandia.se, danskebank.se, SCB FM5001C",
     "avgRateSource": "SCB Finansmarknadsstatistik — nya avtal",
     "totalBanks": 45
