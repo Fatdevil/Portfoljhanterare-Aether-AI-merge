@@ -744,6 +744,231 @@ const App = {
         if (document.getElementById('sim-turnover-display')) {
             document.getElementById('sim-turnover-display').textContent = (turnover * 100).toFixed(0) + '%';
         }
+
+        // Also update Depå→ISK migration calc
+        this.renderDepaMigration(annualReturn, dividend, years);
+    },
+
+    /* ═══════ DEPÅ → ISK MIGRATION ═══════ */
+    _depaMigrateChart: null,
+
+    renderDepaMigration(annualReturn, dividend, years) {
+        const stepsEl = document.getElementById('depa-migrate-steps');
+        const resultsEl = document.getElementById('depa-migrate-results');
+        const insightEl = document.getElementById('depa-migrate-insight');
+        const chartCanvas = document.getElementById('depa-migrate-chart');
+        if (!stepsEl || !resultsEl || !insightEl || !chartCanvas) return;
+
+        const depVal = parseFloat(document.getElementById('depa-migrate-value')?.value) || 500000;
+        const depCost = parseFloat(document.getElementById('depa-migrate-cost')?.value) || 300000;
+        const fmt = (v) => new Intl.NumberFormat('sv-SE', {maximumFractionDigits:0}).format(v);
+
+        const data = TaxEngine.simulateDepaMigration(depVal, depCost, annualReturn, dividend, years);
+
+        // ── Step-by-step breakdown ──
+        const gainPct = depVal > 0 ? ((data.gain / depVal) * 100).toFixed(0) : 0;
+        const taxPct = depVal > 0 ? ((data.sellTax / depVal) * 100).toFixed(1) : 0;
+
+        stepsEl.innerHTML = `
+            <div style="display:grid;gap:6px;">
+                <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid var(--text-muted);font-size:0.72rem;">
+                    <div style="font-weight:700;color:var(--text-primary);margin-bottom:4px;">STEG 1 — Sälj depån</div>
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:2px 12px;color:var(--text-secondary);">
+                        <span>Marknadsvärde</span><span style="text-align:right;font-family:var(--font-mono)">${fmt(depVal)} kr</span>
+                        <span>Anskaffningsvärde (GAV)</span><span style="text-align:right;font-family:var(--font-mono)">${fmt(depCost)} kr</span>
+                        <span>Vinst</span><span style="text-align:right;font-family:var(--font-mono);color:var(--positive)">${fmt(data.gain)} kr</span>
+                        <span style="color:var(--negative)">Kapitalvinstskatt (30%)</span>
+                        <span style="text-align:right;font-family:var(--font-mono);color:var(--negative);font-weight:700">−${fmt(data.sellTax)} kr</span>
+                    </div>
+                </div>
+                <div style="padding:8px 10px;background:rgba(0,200,100,0.05);border-radius:6px;border-left:3px solid var(--positive);font-size:0.72rem;">
+                    <div style="font-weight:700;color:var(--positive);margin-bottom:4px;">STEG 2 — Placera i ISK</div>
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:2px 12px;color:var(--text-secondary);">
+                        <span>Kvar att investera</span>
+                        <span style="text-align:right;font-family:var(--font-mono);font-weight:700">${fmt(data.iskStartCapital)} kr</span>
+                        <span>ISK-skatt/år (schablon)</span>
+                        <span style="text-align:right;font-family:var(--font-mono)">~${fmt(data.iskStartCapital * TaxEngine.ISK.schablonRanta * TaxEngine.ISK.taxRate)} kr</span>
+                        <span>Förväntad avkastning</span>
+                        <span style="text-align:right;font-family:var(--font-mono)">${(annualReturn * 100).toFixed(1)}%/år</span>
+                    </div>
+                </div>
+                ${data.breakevenYear > 0 && data.breakevenYear <= years ? `
+                <div style="padding:8px 10px;background:rgba(0,180,255,0.05);border-radius:6px;border-left:3px solid var(--accent-primary);font-size:0.72rem;">
+                    <div style="font-weight:700;color:var(--accent-primary);margin-bottom:4px;">STEG 3 — Brytpunkt</div>
+                    <div style="color:var(--text-secondary);">
+                        Skattesmällen på <strong style="color:var(--negative)">${fmt(data.sellTax)} kr</strong> (${taxPct}% av portföljen) 
+                        är intjänad efter <strong style="color:var(--accent-primary);font-size:0.85rem">${data.breakevenYear.toFixed(1)} år</strong>.
+                        Därefter är ISK billigare varje år.
+                    </div>
+                    <div style="margin-top:6px;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;">
+                        <div style="height:100%;width:${Math.min(100, (data.breakevenYear / Math.max(years, 1)) * 100)}%;background:linear-gradient(90deg, var(--negative), var(--positive));border-radius:3px;transition:width 0.3s;"></div>
+                    </div>
+                </div>
+                ` : data.breakevenYear === -1 ? `
+                <div style="padding:8px 10px;background:rgba(255,50,50,0.05);border-radius:6px;border-left:3px solid var(--negative);font-size:0.72rem;">
+                    <div style="font-weight:700;color:var(--negative);margin-bottom:4px;">⚠ BRYTPUNKT EJ UPPNÅDD</div>
+                    <div style="color:var(--text-secondary);">
+                        Inom ${years} år hinner ISK inte ikapp depån. 
+                        Med nuvarande avkastning (${(annualReturn*100).toFixed(1)}%) lönar det sig inte att flytta.
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+
+        // ── Comparison at end of period ──
+        const iskEnd = data.iskValues[years];
+        const depaEnd = data.depaFinalNet;
+        const diff = iskEnd - depaEnd;
+
+        resultsEl.innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="padding:8px;background:rgba(0,200,100,0.06);border:1px solid rgba(0,200,100,0.15);border-radius:6px;text-align:center;">
+                    <div style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase">ISK efter ${years} år</div>
+                    <div style="font-family:var(--font-mono);font-weight:700;font-size:1.05rem;color:var(--positive);margin-top:2px">${fmt(iskEnd)} kr</div>
+                </div>
+                <div style="padding:8px;background:rgba(255,100,50,0.06);border:1px solid rgba(255,100,50,0.15);border-radius:6px;text-align:center;">
+                    <div style="font-size:0.6rem;color:var(--text-muted);text-transform:uppercase">Depå efter ${years} år (netto)</div>
+                    <div style="font-family:var(--font-mono);font-weight:700;font-size:1.05rem;color:#ff6633;margin-top:2px">${fmt(depaEnd)} kr</div>
+                </div>
+            </div>
+        `;
+
+        // ── Insight ──
+        if (diff > 0) {
+            const monthlyGain = Math.round(diff / (years * 12));
+            insightEl.innerHTML = `
+                <div style="padding:8px 10px;background:rgba(0,200,100,0.08);border:1px solid rgba(0,200,100,0.2);border-radius:6px;font-size:0.7rem;color:var(--text-secondary);">
+                    💡 <strong style="color:var(--positive)">Flytta lönar sig!</strong> 
+                    Du tjänar <strong style="color:var(--positive)">${fmt(diff)} kr</strong> mer i ISK efter ${years} år
+                    — motsvarar <strong>${fmt(monthlyGain)} kr/mån</strong> i fördel.
+                    ${data.breakevenYear > 0 ? `Brytpunkt: ${data.breakevenYear.toFixed(1)} år.` : ''}
+                </div>
+            `;
+        } else {
+            insightEl.innerHTML = `
+                <div style="padding:8px 10px;background:rgba(255,80,50,0.08);border:1px solid rgba(255,80,50,0.2);border-radius:6px;font-size:0.7rem;color:var(--text-secondary);">
+                    ⚠️ <strong style="color:var(--negative)">Behåll depån.</strong> 
+                    Med ${(annualReturn * 100).toFixed(1)}% avkastning och ${years} års horisont 
+                    förlorar du <strong style="color:var(--negative)">${fmt(Math.abs(diff))} kr</strong> på att flytta.
+                    Skattesmällen är för stor relativt tidsperioden.
+                </div>
+            `;
+        }
+
+        // ── Chart ──
+        this._renderDepaMigrateChart(chartCanvas, data, years);
+    },
+
+    _renderDepaMigrateChart(canvas, data, years) {
+        const ctx = canvas.getContext('2d');
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const labelColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+        const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+        if (this._depaMigrateChart) {
+            this._depaMigrateChart.destroy();
+        }
+
+        const labels = Array.from({length: years + 1}, (_, i) => `År ${i}`);
+        const fmt = (v) => new Intl.NumberFormat('sv-SE', {maximumFractionDigits: 0}).format(v) + ' kr';
+
+        // Create breakeven annotation line data
+        const breakevenIdx = data.breakevenYear > 0 ? Math.round(data.breakevenYear) : null;
+
+        this._depaMigrateChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'ISK (sälj nu → flytta)',
+                        data: data.iskValues,
+                        borderColor: '#00cc88',
+                        backgroundColor: 'rgba(0, 204, 136, 0.08)',
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                    },
+                    {
+                        label: 'Depå (behåll, netto efter skatt)',
+                        data: data.depaNetValues,
+                        borderColor: '#ff6633',
+                        backgroundColor: 'rgba(255, 102, 51, 0.08)',
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 2.5,
+                        borderDash: [6, 3],
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: labelColor, font: { size: 10 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`,
+                            afterBody: (items) => {
+                                if (items.length >= 2) {
+                                    const diff = items[0].parsed.y - items[1].parsed.y;
+                                    return diff >= 0 
+                                        ? `ISK fördel: +${fmt(diff)}`
+                                        : `Depå fördel: +${fmt(Math.abs(diff))}`;
+                                }
+                                return '';
+                            }
+                        }
+                    },
+                    annotation: breakevenIdx ? {
+                        annotations: {
+                            breakevenLine: {
+                                type: 'line',
+                                xMin: breakevenIdx,
+                                xMax: breakevenIdx,
+                                borderColor: 'rgba(0, 180, 255, 0.6)',
+                                borderWidth: 1.5,
+                                borderDash: [4, 4],
+                                label: {
+                                    display: true,
+                                    content: `Brytpunkt: ${data.breakevenYear.toFixed(1)} år`,
+                                    position: 'start',
+                                    backgroundColor: 'rgba(0, 180, 255, 0.15)',
+                                    color: isDark ? '#00b4ff' : '#0088cc',
+                                    font: { size: 10, weight: 'bold' },
+                                    padding: 4,
+                                }
+                            }
+                        }
+                    } : {},
+                },
+                scales: {
+                    x: {
+                        ticks: { color: labelColor, maxTicksLimit: 10, font: { size: 9 } },
+                        grid: { color: gridColor },
+                    },
+                    y: {
+                        ticks: {
+                            color: labelColor,
+                            font: { size: 9 },
+                            callback: (v) => (v / 1000000 >= 1) ? (v / 1000000).toFixed(1) + 'M' : (v / 1000).toFixed(0) + 'k',
+                        },
+                        grid: { color: gridColor },
+                    },
+                },
+            },
+        });
     },
 
     /* ═══════ THEME ═══════ */
@@ -1370,6 +1595,12 @@ const App = {
                 this.runTaxSimulation();
             });
         }
+
+        // Depå→ISK migration inputs
+        ['depa-migrate-value', 'depa-migrate-cost'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => this.runTaxSimulation());
+        });
     },
 
     /* ═══════ SAVINGS TAB ═══════ */

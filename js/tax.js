@@ -239,4 +239,99 @@ const TaxEngine = {
     formatPct(value, decimals = 1) {
         return (value * 100).toFixed(decimals) + '%';
     },
+
+    /**
+     * Simulate Depå → ISK migration
+     * Compares keeping money in Depå vs selling and moving to ISK
+     * @param {number} currentValue  — current depå value
+     * @param {number} costBasis     — original purchase cost (GAV)
+     * @param {number} annualReturn  — expected annual return
+     * @param {number} dividend      — annual dividend yield
+     * @param {number} years         — simulation horizon
+     * @returns {Object} comparison data for chart and table
+     */
+    simulateDepaMigration(currentValue, costBasis, annualReturn, dividend = 0.02, years = 30) {
+        // ── Scenario A: Keep in Depå ──
+        // Grows in depå, dividends taxed yearly, capital gains taxed at sale
+        const depaValues = [currentValue];
+        let depaVal = currentValue;
+        let depaCB = costBasis;
+
+        for (let y = 1; y <= years; y++) {
+            const divs = depaVal * dividend;
+            const divTax = divs * this.DEPA.dividendTax;
+            const priceReturn = annualReturn - dividend;
+            const reinvest = divs - divTax;
+            depaVal = depaVal * (1 + priceReturn) + reinvest;
+            depaCB += reinvest;
+            depaValues.push(depaVal);
+        }
+
+        // Final depå value after selling (capital gains tax)
+        const depaFinalGain = Math.max(0, depaValues[years] - Math.max(depaCB, depaValues[years] * 0.20));
+        const depaFinalTax = depaFinalGain * this.DEPA.capitalGainsTax;
+        const depaFinalNet = depaValues[years] - depaFinalTax;
+
+        // ── Scenario B: Sell now → ISK ──
+        // Pay tax on gains, invest remainder in ISK
+        const gain = Math.max(0, currentValue - Math.max(costBasis, currentValue * 0.20));
+        const sellTax = gain * this.DEPA.capitalGainsTax;
+        const iskStartCapital = currentValue - sellTax;
+
+        const iskValues = [iskStartCapital];
+        let iskVal = iskStartCapital;
+
+        for (let y = 1; y <= years; y++) {
+            iskVal *= (1 + annualReturn);
+            const iskTaxInfo = this.calculateISKTax(iskVal);
+            iskVal -= iskTaxInfo.tax;
+            iskValues.push(iskVal);
+        }
+
+        // Find breakeven year
+        let breakevenYear = -1;
+        for (let y = 1; y <= years; y++) {
+            // Compare ISK value vs Depå value (Depå needs to be net of future tax)
+            // We compare ISK (already net) vs Depå at current point minus estimated exit tax
+            const depaAtY = depaValues[y];
+            const depaCBAtY = costBasis + (depaAtY - currentValue) * 0.3; // rough CB tracking
+            const depaGainAtY = Math.max(0, depaAtY - Math.max(costBasis, depaAtY * 0.20));
+            const depaTaxAtY = depaGainAtY * this.DEPA.capitalGainsTax;
+            const depaNetAtY = depaAtY - depaTaxAtY;
+
+            if (breakevenYear === -1 && iskValues[y] >= depaNetAtY) {
+                if (y === 1) {
+                    breakevenYear = 1;
+                } else {
+                    // Previous year values for interpolation
+                    const prevDepaNet = depaValues[y-1] - Math.max(0, depaValues[y-1] - Math.max(costBasis, depaValues[y-1] * 0.20)) * this.DEPA.capitalGainsTax;
+                    const prevDiff = prevDepaNet - iskValues[y-1];
+                    const currDiff = iskValues[y] - depaNetAtY;
+                    const fraction = prevDiff / (prevDiff + currDiff);
+                    breakevenYear = (y - 1) + Math.min(fraction, 1);
+                }
+            }
+        }
+
+        // Net values for comparison (Depå after-tax at each year)
+        const depaNetValues = depaValues.map((v, y) => {
+            if (y === 0) return v;
+            const g = Math.max(0, v - Math.max(costBasis, v * 0.20));
+            return v - g * this.DEPA.capitalGainsTax;
+        });
+
+        return {
+            gain,
+            sellTax,
+            iskStartCapital,
+            depaValues,
+            depaNetValues,
+            iskValues,
+            depaFinalNet,
+            iskFinal: iskValues[years],
+            breakevenYear,
+            years,
+            advantage: iskValues[years] - depaFinalNet,
+        };
+    },
 };
