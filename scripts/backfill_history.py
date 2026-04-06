@@ -51,8 +51,15 @@ def build_database():
     # 1.1.2.2.2 = Bunden > 3 och <= 5 år
     # 1.1.2.3 = Bunden > 5 år
     
-    # Map SCB codes to out internal binding keys
-    # SCB lacks exactly 1y, so we use 1-2y for 1y and 2y, etc based on closest match or just fill variable and 3y, 5y
+    # Map SCB codes to our internal binding keys
+    # ⚠️ IMPORTANT: SCB lacks a pure "1 year" category. Their codes are:
+    #   1.1.1        = Rörlig (≤ 3 mån)           → variable    (exact match)
+    #   1.1.2.2.1.1  = Bunden > 1 och ≤ 2 år      → fixed_1y    (APPROXIMATION: 1-2y used as proxy for 1y)
+    #   1.1.2.2.1.2  = Bunden > 2 och ≤ 3 år      → fixed_2y    (APPROXIMATION: 2-3y used as proxy for 2y)
+    #   1.1.2.2.2    = Bunden > 3 och ≤ 5 år      → fixed_3y    (APPROXIMATION: 3-5y used as proxy for 3y)
+    #   1.1.2.3      = Bunden > 5 år               → fixed_5y    (APPROXIMATION: >5y used as proxy for 5y)
+    # The Compricer data (inject_fixed_rates.py) provides more granular bank-level data
+    # that supplements these SCB market averages.
     binding_map = {
         "1.1.1": "variable",
         "1.1.2.2.1.1": "fixed_1y",

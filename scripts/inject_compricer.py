@@ -2,6 +2,10 @@ import json
 from pathlib import Path
 import re
 
+# ⚠️ IMPORTANT: Compricer uses DIFFERENT provider IDs depending on the page/bindtime!
+# These IDs are for the VARIABLE rate page (bindtime=3months).
+# inject_fixed_rates.py has DIFFERENT IDs for fixed rate pages — this is correct behavior,
+# NOT a bug. Verified 2026-04 by inspecting Compricer HTML data-graph attributes.
 PROVIDER_MAP = {
     'p7': 'SBAB',
     'p3': 'Handelsbanken',

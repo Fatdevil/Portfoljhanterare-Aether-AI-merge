@@ -451,9 +451,10 @@ const Optimizer = {
     },
 
     /**
-     * Modern AI / Hierarchical Risk Parity (Simplified)
+     * Riskparitet (Inverse Volatility)
      * Allocates weights inversely proportional to volatility to create a balanced risk profile
      * independent of subjective return forecasts.
+     * NOTE: This is NOT true HRP (which uses hierarchical clustering). It is Inverse Volatility Weighting.
      */
     calculateRiskParityTarget(covMatrix, targetRisk = null, expectedReturns = null) {
         // Extract volatilities from covariance diagonal

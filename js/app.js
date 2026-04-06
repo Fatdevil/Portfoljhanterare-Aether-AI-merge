@@ -1212,7 +1212,7 @@ const App = {
 
                         return `
                             <tr>
-                                <td style="color:${bt?.color || 'inherit'};font-weight:600">${isDetail ? '  └ ' : ''}${s.label}</td>
+                                <td style="color:${bt?.color || 'inherit'};font-weight:600">${s.label}</td>
                                 <td style="font-weight:700">${s.current.toFixed(2)}%</td>
                                 <td>${s.avg.toFixed(2)}%</td>
                                 <td style="color:var(--positive)">${s.min.toFixed(2)}%</td>
@@ -1312,8 +1312,8 @@ const App = {
                     titleEl.textContent = 'Strukturell Analys — Markowitz Mean-Variance';
                     document.getElementById('hrp-target-info').style.display = 'none';
                 } else {
-                    descEl.innerHTML = '<strong>Modern AI (Hierarkisk Riskparitet):</strong> Beräknar ej framtida avkastning. Minimerar koncentrationsrisk genom att klustra tillgångar baserat på korrelation så att orelaterade risker balanserar varandra.';
-                    titleEl.textContent = 'Strukturell Analys — AI-Klustring (HRP)';
+                    descEl.innerHTML = '<strong>Riskparitet (Invers Volatilitet):</strong> Beräknar ej framtida avkastning. Viktar tillgångar omvänt proportionellt mot deras volatilitet — låg risk får mer allokering. Ger en naturligt diversifierad portfölj utan subjektiva avkastningsprognoser.';
+                    titleEl.textContent = 'Strukturell Analys — Riskparitet (Inv. Vol.)';
                     document.getElementById('hrp-target-info').style.display = 'block';
                 }
                 
@@ -2623,6 +2623,16 @@ const App = {
             <div style="margin-top:8px; font-size:0.62rem; color:var(--text-muted);">
                 Beräknat med ${(amortRate * 100).toFixed(1)}% amortering/år, 30% ränteavdrag. Kvarvarande skuld efter ${years} år: ${fmt(best.remainingBalance)} kr.
             </div>
+            ${(() => {
+                const legalMin = ltv > 70 ? 2.0 : (ltv > 50 ? 1.0 : 0);
+                const userPct = amortRate * 100;
+                if (legalMin > 0 && userPct < legalMin) {
+                    return '<div style="margin-top:6px;padding:6px 10px;background:rgba(255,100,100,0.1);border:1px solid rgba(255,100,100,0.3);border-radius:6px;font-size:0.65rem;color:var(--negative);">⚠️ Lagstadgat amorteringskrav: Vid belåningsgrad ' + (ltv > 70 ? '>70%' : '50–70%') + ' krävs minst ' + legalMin.toFixed(1) + '%/år. Din valda takt (' + userPct.toFixed(1) + '%) kan vara under minimikravet.</div>';
+                } else if (legalMin > 0) {
+                    return '<div style="margin-top:4px;font-size:0.6rem;color:var(--text-muted);">✓ Amorteringskrav: Minst ' + legalMin.toFixed(1) + '%/år vid belåningsgrad ' + (ltv > 70 ? '>70%' : '50–70%') + '. Din takt uppfyller kravet.</div>';
+                }
+                return '';
+            })()}
         `;
     },
 

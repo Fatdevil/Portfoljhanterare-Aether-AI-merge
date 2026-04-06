@@ -16,6 +16,10 @@ BINDINGS = {
     "5years": "fixed_5y",
 }
 
+# ⚠️ IMPORTANT: These provider IDs are for FIXED rate pages (bindtime=1year/2years/etc).
+# inject_compricer.py uses DIFFERENT IDs for the variable rate page — this is correct,
+# NOT a bug. Compricer assigns different IDs per page type.
+# Verified 2026-04 by inspecting Compricer HTML data-graph attributes.
 PROVIDER_MAP = {
     "average": "SCB_Marknad",
     "p1": "Swedbank",
