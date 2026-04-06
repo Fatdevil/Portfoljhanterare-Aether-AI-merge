@@ -972,6 +972,37 @@ body {
     flex: 1;
 }
 
+/* ── Amortization Horizon Buttons ──────────────────────────────────── */
+.amort-horizon-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 26px !important;
+    padding: 0 12px !important;
+    border-radius: 13px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--bg-panel) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    font-size: 0.7rem !important;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--font-mono);
+    box-sizing: border-box !important;
+}
+
+.amort-horizon-btn:hover {
+    border-color: var(--accent-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+.amort-horizon-btn.active {
+    border-color: var(--accent-tertiary) !important;
+    background: rgba(255, 215, 64, 0.1) !important;
+    color: var(--accent-tertiary) !important;
+    font-weight: 700 !important;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .main-grid {

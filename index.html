@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portföljoptimerare — Svenska Storbanker vs Effektiva Fronten</title>
     <meta name="description" content="Jämför svenska storbankers modellportföljer mot den effektiva fronten. Optimera din portfölj med hänsyn till ISK och depåbeskattning.">
-    <link rel="stylesheet" href="css/style.css?v=20260405c">
+    <link rel="stylesheet" href="css/style.css?v=20260406a">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -757,7 +757,7 @@
                 </div>
                 <!-- Right: Personal Rate Cards -->
                 <div>
-                    <h3 style="font-size:1rem; margin:0 0 4px; color:#00ff88;">🎯 Din Personliga Ränta</h3>
+                    <h3 style="font-size:1rem; margin:0 0 4px; color:var(--positive);">🎯 Din Personliga Ränta</h3>
                     <p style="color:var(--text-muted); font-size:0.75rem; margin:0 0 12px;">Baserat på din belåningsgrad — de bästa erbjudandena för dig just nu</p>
                     <div id="personal-rate-cards" style="display:flex; flex-direction:column; gap:8px;">
                         <!-- Populated by JS -->
@@ -765,6 +765,42 @@
                     <div id="personal-rate-meta" style="margin-top:8px;">
                         <span style="font-size:0.65rem; color:var(--text-muted); font-style:italic;" id="discount-curves-freshness">Laddar kalibrering...</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- ── AMORTIZATION CALCULATOR ── -->
+            <div id="amortization-section" style="margin-top:24px; padding:20px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <h3 style="font-size:1rem; margin:0; color:var(--accent-primary);">💰 Totalkostnad — Bankjämförelse</h3>
+                        <p style="color:var(--text-muted); font-size:0.72rem; margin:4px 0 0;">Se hur mycket du sparar över tid med ränteavdrag (30%) och amortering</p>
+                    </div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <span style="font-size:0.7rem; color:var(--text-muted); margin-right:4px;">Tidshorisont:</span>
+                        <button class="amort-horizon-btn active" data-years="5">5 år</button>
+                        <button class="amort-horizon-btn" data-years="10">10 år</button>
+                        <button class="amort-horizon-btn" data-years="15">15 år</button>
+                        <button class="amort-horizon-btn" data-years="20">20 år</button>
+                        <button class="amort-horizon-btn" data-years="30">30 år</button>
+                    </div>
+                </div>
+
+                <!-- Amortization Rate Slider -->
+                <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px; padding:10px 14px; background:var(--bg-panel); border:1px solid var(--border); border-radius:8px;">
+                    <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--accent-primary); font-weight:700; white-space:nowrap;">Amortering</span>
+                    <input type="range" id="amort-rate-slider" min="1" max="4" step="0.5" value="2" style="flex:1; accent-color:var(--accent-primary);">
+                    <span id="amort-rate-label" style="font-family:var(--font-mono); font-weight:700; color:var(--text-primary); min-width:42px; text-align:right;">2.0%</span>
+                    <span style="font-size:0.6rem; color:var(--text-muted);">av lånet/år</span>
+                </div>
+
+                <!-- Comparison Table -->
+                <div id="amort-comparison-table">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Summary -->
+                <div id="amort-summary" style="margin-top:12px; padding:12px 16px; background:var(--highlight-bg); border:1px solid var(--border); border-radius:8px;">
+                    <!-- Populated by JS -->
                 </div>
             </div>
         </div>

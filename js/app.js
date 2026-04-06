@@ -1694,6 +1694,28 @@ const App = {
         this.renderDiscountCurvesFreshness();
         this.updateCompareMortgageView();
 
+        // ── Amortization Calculator ──
+        this._amortYears = 5;
+
+        document.querySelectorAll('.amort-horizon-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.amort-horizon-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this._amortYears = parseInt(btn.dataset.years);
+                this.renderAmortizationComparison();
+            });
+        });
+
+        const amortSlider = document.getElementById('amort-rate-slider');
+        if (amortSlider) {
+            amortSlider.addEventListener('input', (e) => {
+                document.getElementById('amort-rate-label').textContent = parseFloat(e.target.value).toFixed(1) + '%';
+                this.renderAmortizationComparison();
+            });
+        }
+
+        this.renderAmortizationComparison();
+
         this._compareMortgageInit = true;
     },
 
@@ -2288,6 +2310,136 @@ const App = {
                 </div>
             `;
         }).join('');
+
+        // Also update amortization comparison
+        this.renderAmortizationComparison();
+    },
+
+    renderAmortizationComparison() {
+        const tableEl = document.getElementById('amort-comparison-table');
+        const summaryEl = document.getElementById('amort-summary');
+        if (!tableEl || !summaryEl) return;
+
+        const type = this._compareMortgageActiveType;
+        const years = this._amortYears || 5;
+        const loan = parseInt(document.getElementById('compare-mortgage-amount')?.value || 3000000);
+        const amortRate = parseFloat(document.getElementById('amort-rate-slider')?.value || 2) / 100;
+        const ltv = this.updateLTV();
+
+        // Get all banks with rates for this type
+        const banks = window.MORTGAGE_BANKS?.filter(b => b.type === type) || [];
+        if (banks.length === 0) {
+            tableEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">Ingen data tillgänglig</p>';
+            summaryEl.innerHTML = '';
+            return;
+        }
+
+        // Calculate amortization schedule for each bank
+        const results = banks.map(bank => {
+            // Try to get personal rate from discount curves
+            let rate = bank.avgRate;
+            if (window.DISCOUNT_CURVES && window.DISCOUNT_CURVES[bank.name]) {
+                const curve = window.DISCOUNT_CURVES[bank.name][type];
+                if (curve) {
+                    const discount = this.interpolateDiscount(curve, ltv);
+                    rate = Math.max(bank.listRate - discount, 0.5);
+                }
+            }
+
+            // Month-by-month simulation
+            let balance = loan;
+            let totalInterest = 0;
+            let totalAmort = 0;
+            const months = years * 12;
+            const monthlyAmort = (loan * amortRate) / 12;
+
+            for (let m = 0; m < months; m++) {
+                if (balance <= 0) break;
+                const monthlyInterest = balance * (rate / 100) / 12;
+                const interestAfterDeduction = monthlyInterest * 0.7; // 30% ränteavdrag
+                totalInterest += interestAfterDeduction;
+                const actualAmort = Math.min(monthlyAmort, balance);
+                totalAmort += actualAmort;
+                balance -= actualAmort;
+            }
+
+            // Average monthly cost (interest after deduction + amortization)
+            const totalCost = totalInterest + totalAmort;
+            const avgMonthly = Math.round(totalCost / months);
+            const avgInterestMonthly = Math.round(totalInterest / months);
+
+            return {
+                name: bank.name,
+                rate: rate,
+                totalInterest: Math.round(totalInterest),
+                totalAmort: Math.round(totalAmort),
+                totalCost: Math.round(totalCost),
+                avgMonthly: avgMonthly,
+                avgInterestMonthly: avgInterestMonthly,
+                remainingBalance: Math.max(0, Math.round(balance))
+            };
+        });
+
+        // Sort by total cost (cheapest first)
+        results.sort((a, b) => a.totalCost - b.totalCost);
+        const worstCost = results[results.length - 1].totalCost;
+        const bestCost = results[0].totalCost;
+
+        // Render table
+        const fmt = (n) => n.toLocaleString('sv-SE');
+        const medals = ['🥇', '🥈', '🥉'];
+
+        tableEl.innerHTML = `
+            <div style="display:grid; grid-template-columns:30px 1fr 90px 120px 120px 120px; gap:0; font-size:0.72rem;">
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border);">#</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border);">BANK</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">RÄNTA</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">RÄNTEKOSTNAD</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">SNITT/MÅN</div>
+                <div style="padding:6px 4px; color:var(--text-muted); font-weight:700; border-bottom:1px solid var(--border); text-align:right;">DU SPARAR</div>
+                ${results.map((r, i) => {
+                    const savings = worstCost - r.totalCost;
+                    const medal = i < 3 ? medals[i] : `<span style="color:var(--text-muted);">${i + 1}</span>`;
+                    const rowBg = i === 0 ? 'var(--highlight-bg)' : (i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)');
+                    const savingsColor = savings > 0 ? 'var(--positive)' : (savings < 0 ? 'var(--negative)' : 'var(--text-muted)');
+                    const rateColor = i === 0 ? 'var(--positive)' : 'var(--text-primary)';
+                    return `
+                        <div style="padding:8px 4px; background:${rowBg}; display:flex; align-items:center;">${medal}</div>
+                        <div style="padding:8px 4px; background:${rowBg}; font-weight:${i === 0 ? '700' : '500'}; color:var(--text-primary); display:flex; align-items:center;">${r.name}</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right; font-family:var(--font-mono); color:${rateColor}; font-weight:600;">${r.rate.toFixed(2)}%</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right; font-family:var(--font-mono); color:var(--text-secondary);">${fmt(r.totalInterest)} kr</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right; font-family:var(--font-mono); color:var(--text-primary); font-weight:600;">${fmt(r.avgMonthly)} kr</div>
+                        <div style="padding:8px 4px; background:${rowBg}; text-align:right; font-family:var(--font-mono); color:${savingsColor}; font-weight:700;">${savings > 0 ? '+' + fmt(savings) + ' kr' : '—'}</div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+
+        // Summary
+        const best = results[0];
+        const worst = results[results.length - 1];
+        const totalSavings = worst.totalCost - best.totalCost;
+        const monthlySavings = Math.round(totalSavings / (years * 12));
+
+        summaryEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Billigaste banken på ${years} år:</span>
+                    <span style="font-weight:700; color:var(--positive); margin-left:6px; font-size:0.9rem;">${best.name}</span>
+                    <span style="font-size:0.72rem; color:var(--text-secondary); margin-left:4px;">(${best.rate.toFixed(2)}%)</span>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:0.7rem; color:var(--text-muted);">Du sparar vs dyrast (${worst.name})</div>
+                    <div style="font-family:var(--font-mono); font-weight:700; font-size:1.1rem; color:var(--positive);">
+                        ${totalSavings > 0 ? '+' + fmt(totalSavings) + ' kr' : '0 kr'}
+                    </div>
+                    <div style="font-size:0.65rem; color:var(--text-muted);">${monthlySavings > 0 ? fmt(monthlySavings) + ' kr/mån billigare' : ''}</div>
+                </div>
+            </div>
+            <div style="margin-top:8px; font-size:0.62rem; color:var(--text-muted);">
+                Beräknat med ${(amortRate * 100).toFixed(1)}% amortering/år, 30% ränteavdrag. Kvarvarande skuld efter ${years} år: ${fmt(best.remainingBalance)} kr.
+            </div>
+        `;
     },
 
     renderDiscountCurvesFreshness() {
