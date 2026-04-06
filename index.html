@@ -58,7 +58,7 @@
     <div class="main-grid view-section active" id="view-frontier">
 
         <!-- LEFT: Bank Funds + User Portfolio -->
-        <div class="panel" id="panel-banks" style="overflow-y:auto;max-height:calc(100vh - 90px)">
+        <div class="panel" id="panel-banks" style="display:flex;flex-direction:column;overflow-y:auto;max-height:calc(100vh - 90px)">
 
             <!-- BANK SELECTOR -->
             <div class="panel-header">
@@ -156,7 +156,7 @@
                 HRP-motorn bygger automatiskt målet baserat på <span style="color:var(--text-primary);">Inverse Volatility</span> (Risk Parity). Inställningar döljs för att förhindra manuell överstyrning.
             </div>
 
-            <div style="display:flex;gap:6px;margin-top:8px">
+            <div style="display:flex;gap:6px;margin-top:auto;padding-top:16px;">
                 <button class="btn-action" id="btn-optimize" style="flex:1">⚡ OPTIMERA</button>
                 <button class="btn-action" id="btn-clear-portfolio" style="flex:0.5;border-color:var(--negative);color:var(--negative);background:rgba(255,61,113,0.06)">RENSA</button>
             </div>
@@ -191,7 +191,7 @@
                 </div>
             </div>
 
-            <div class="chart-container" style="flex: 0 1 400px; min-height: 250px; max-height: 400px; margin-bottom: 12px;">
+            <div class="chart-container" style="flex: 1; min-height: 400px; margin-bottom: 12px; position:relative;">
                 <canvas id="frontier-chart"></canvas>
             </div>
             </div>
@@ -722,11 +722,10 @@
             <span id="rates-freshness-badge" style="font-size:0.7rem;padding:3px 10px;border-radius:12px;font-family:'JetBrains Mono',monospace;white-space:nowrap;">Laddar...</span>
         </div>
 
-        <!-- ── 3 MAIN TABS ── -->
+        <!-- ── 2 MAIN TABS ── -->
         <div id="mortgage-main-tabs" style="display:flex; gap:0; border-bottom:2px solid var(--border); margin-bottom:12px;">
-            <button class="mortgage-tab-btn active" data-mtab="compare">📊 Jämför Räntor</button>
+            <button class="mortgage-tab-btn active" data-mtab="compare">📊 Jämför Räntor & Historik</button>
             <button class="mortgage-tab-btn" data-mtab="personal">🎯 Personlig Ränta</button>
-            <button class="mortgage-tab-btn" data-mtab="history">📈 Historik & Analys</button>
         </div>
 
         <!-- ── BINDING TYPE SELECTOR (below tabs) ── -->
@@ -784,12 +783,83 @@
                         </div>
                     </div>
                 </div>
-                <!-- Right: Rate Table -->
-                <div>
-                    <h3 style="font-size:1rem; margin:0 0 12px; color:var(--text-primary);">Bästa bolåneräntan just nu</h3>
-                    <p style="color:var(--text-muted); font-size:0.75rem; margin:0 0 12px;">Snitträntan = vad kunder i genomsnitt fick prutat till. Listräntan = bankens "katalogpris".</p>
-                    <div id="compare-mortgage-table-container">
-                        <!-- Populated by JS -->
+                <!-- Right: Content Grid -->
+                <div style="display:flex; flex-direction:column; gap:20px;">
+                    <!-- Top Split: Table and Chart -->
+                    <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:20px;">
+                        <!-- Left inside Right: Rate Table -->
+                        <div>
+                            <h3 style="font-size:1rem; margin:0 0 12px; color:var(--text-primary);">Bästa snitträntan förra månaden</h3>
+                            <p style="color:var(--text-muted); font-size:0.75rem; margin:0 0 12px;">Snitträntan = vad kunder i genomsnitt fick prutat till. Listräntan = bankens "katalogpris".</p>
+                            <div id="compare-mortgage-table-container">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Right inside Right: History Chart ONLY -->
+                        <div style="display:flex; flex-direction:column;">
+                            <div id="compare-mortgage-history-container" style="display:flex; flex-direction:column; height:100%;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <p style="color:var(--text-muted); font-size:0.75rem; margin:0;">Historiska snitträntor per bank. <span style="color:var(--accent-primary);">Klicka på namn ></span></p>
+                                    <div id="history-zoom-controls" style="display:flex; gap:6px;">
+                                        <button class="zoom-btn" data-years="3" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:4px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">3 År</button>
+                                        <button class="zoom-btn active" data-years="5" style="background:var(--accent-primary);border:1px solid var(--accent-primary);color:#fff;padding:4px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">5 År</button>
+                                        <button class="zoom-btn" data-years="10" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:4px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer;">Max</button>
+                                    </div>
+                                </div>
+                                <!-- Match height of the table by using flex:1 -->
+                                <div style="position:relative; flex:1; min-height:250px; width:100%;">
+                                    <canvas id="mortgage-history-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── SCENARIO ANALYSIS (Full width) ── -->
+                    <div id="scenario-analysis-section" style="padding:16px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px;">
+                        <div style="margin-bottom:12px;">
+                            <h3 style="font-size:0.9rem; margin:0; color:var(--accent-tertiary);">🔮 Ränteprognos — Vad händer om?</h3>
+                            <p style="color:var(--text-muted); font-size:0.65rem; margin:2px 0 0;">Simulera en ränteändring från Riksbanken och hur dessa banker reagerar historiskt.</p>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; padding:10px 14px; background:var(--bg-panel); border:1px solid var(--border); border-radius:6px;">
+                            <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--negative);">−1.0%</span>
+                            <input type="range" id="scenario-rate-slider" min="-1.0" max="1.0" step="0.25" value="0" style="flex:1; accent-color:var(--accent-tertiary);">
+                            <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--positive);">+1.0%</span>
+                            <div style="min-width:60px; text-align:center; padding:2px 8px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px;">
+                                <span id="scenario-rate-label" style="font-family:var(--font-mono); font-weight:700; font-size:0.85rem; color:var(--text-primary);">0.00%</span>
+                            </div>
+                        </div>
+
+                        <div id="scenario-results-table">
+                            <p style="color:var(--text-muted); font-size:0.75rem;">Dra i slidern ovan för att simulera...</p>
+                        </div>
+                        <div id="scenario-insight" style="margin-top:10px; padding:10px; background:var(--highlight-bg); border:1px solid var(--border); border-radius:6px; display:none; font-size:0.75rem;">
+                        </div>
+                    </div>
+
+                    <!-- Bottom Row: Analytical Texts -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                        <!-- Left: Historisk Bankanalys -->
+                        <div id="history-insights-panel" style="padding:16px; background:var(--bg-secondary); border-left:3px solid var(--accent-primary); border-radius:4px;">
+                            <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:var(--accent-primary); display:flex; align-items:center; gap:6px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                                Historisk Bankanalys
+                            </h4>
+                            <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
+                                <li>Laddar insikter...</li>
+                            </ul>
+                        </div>
+                        <!-- Right: Bankprofiler -->
+                        <div id="bank-profiles-panel" style="padding:16px; background:var(--bg-secondary); border-left:3px solid #ff9900; border-radius:4px;">
+                            <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#ff9900; display:flex; align-items:center; gap:6px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                Bankprofiler — Alla löptider
+                            </h4>
+                            <div id="bank-profiles-list" style="color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
+                                Laddar bankprofiler...
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -868,80 +938,6 @@
                 <!-- Summary -->
                 <div id="amort-summary" style="margin-top:12px; padding:12px 16px; background:var(--highlight-bg); border:1px solid var(--border); border-radius:8px;">
                     <!-- Populated by JS -->
-                </div>
-            </div>
-        </div>
-
-        <!-- ═══════ TAB 3: HISTORIK & ANALYS (FULL WIDTH) ═══════ -->
-        <div id="mtab-history" class="mortgage-tab-content" style="display:none;">
-            <!-- Chart -->
-            <div id="compare-mortgage-history-container">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <p style="color:var(--text-muted); font-size:0.8rem; margin:0;">Historiska snitträntor per bank. <span style="color:var(--accent-primary);">Klicka på bankernas namn under grafen för att visa/dölja fler!</span></p>
-                    <div id="history-zoom-controls" style="display:flex; gap:6px;">
-                        <button class="zoom-btn" data-years="1" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;">1 År</button>
-                        <button class="zoom-btn" data-years="3" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;">3 År</button>
-                        <button class="zoom-btn active" data-years="5" style="background:var(--accent-primary);border:1px solid var(--accent-primary);color:#fff;padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;">5 År</button>
-                        <button class="zoom-btn" data-years="10" style="background:var(--bg-tertiary);border:1px solid var(--border-color);color:var(--text-muted);padding:4px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;">Max</button>
-                    </div>
-                </div>
-                <div style="position:relative; height:420px; width:100%;">
-                    <canvas id="mortgage-history-chart"></canvas>
-                </div>
-            </div>
-
-            <!-- ── SCENARIO ANALYSIS ── -->
-            <div id="scenario-analysis-section" style="margin-top:20px; padding:20px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
-                    <div>
-                        <h3 style="font-size:1rem; margin:0; color:var(--accent-tertiary);">🔮 Ränteprognos — Vad händer om?</h3>
-                        <p style="color:var(--text-muted); font-size:0.72rem; margin:4px 0 0;">Simulera en förändring av Riksbankens styrränta och se hur bankerna reagerar baserat på historiskt beteende</p>
-                    </div>
-                </div>
-
-                <!-- Riksbanken Slider -->
-                <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px; padding:12px 16px; background:var(--bg-panel); border:1px solid var(--border); border-radius:8px;">
-                    <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--accent-tertiary); font-weight:700; white-space:nowrap;">Riksbankens ränteändring</span>
-                    <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--negative);">−1.0%</span>
-                    <input type="range" id="scenario-rate-slider" min="-1.0" max="1.0" step="0.25" value="0" style="flex:1; accent-color:var(--accent-tertiary);">
-                    <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--positive);">+1.0%</span>
-                    <div style="min-width:80px; text-align:center; padding:4px 12px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px;">
-                        <span id="scenario-rate-label" style="font-family:var(--font-mono); font-weight:700; font-size:1rem; color:var(--text-primary);">0.00%</span>
-                    </div>
-                </div>
-
-                <!-- Scenario Results -->
-                <div id="scenario-results-table">
-                    <p style="color:var(--text-muted); font-size:0.8rem;">Dra i slidern ovan för att simulera...</p>
-                </div>
-
-                <!-- Scenario Insight -->
-                <div id="scenario-insight" style="margin-top:12px; padding:12px 16px; background:var(--highlight-bg); border:1px solid var(--border); border-radius:8px; display:none;">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-
-            <!-- Analysis panels side by side -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;">
-                <!-- Left: Historisk Bankanalys -->
-                <div id="history-insights-panel" style="padding:16px; background:var(--bg-secondary); border-left:3px solid var(--accent-primary); border-radius:4px;">
-                    <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:var(--accent-primary); display:flex; align-items:center; gap:6px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                        Historisk Bankanalys
-                    </h4>
-                    <ul id="history-insights-list" style="margin:0; padding-left:20px; color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
-                        <li>Laddar insikter...</li>
-                    </ul>
-                </div>
-                <!-- Right: Bankprofiler -->
-                <div id="bank-profiles-panel" style="padding:16px; background:var(--bg-secondary); border-left:3px solid #ff9900; border-radius:4px;">
-                    <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#ff9900; display:flex; align-items:center; gap:6px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Bankprofiler — Alla löptider
-                    </h4>
-                    <div id="bank-profiles-list" style="color:var(--text-muted); font-size:0.8rem; line-height:1.6;">
-                        Laddar bankprofiler...
-                    </div>
                 </div>
             </div>
         </div>

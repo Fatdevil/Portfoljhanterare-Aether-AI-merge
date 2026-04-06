@@ -1862,11 +1862,8 @@ const App = {
                 this.populateCompareMortgageSelect();
                 this.updateCompareMortgageView();
                 this.updatePersonalRates();
-                // Re-render chart + insights if history tab is active
-                const activeTab = document.querySelector('#mortgage-main-tabs .mortgage-tab-btn.active');
-                if (activeTab && activeTab.dataset.mtab === 'history') {
-                    this.renderMortgageHistoryChart();
-                }
+                // Always re-render chart as it's now in the main view
+                this.renderMortgageHistoryChart();
             });
         });
 
@@ -1895,11 +1892,8 @@ const App = {
 
         document.getElementById('compare-mortgage-current-bank').addEventListener('change', () => {
             this.updateCompareMortgageView();
-            // Re-render chart and insights if history tab is active
-            const activeTabBtn = document.querySelector('#mortgage-main-tabs .mortgage-tab-btn.active');
-            if (activeTabBtn && activeTabBtn.dataset.mtab === 'history') {
-                this.renderMortgageHistoryChart();
-            }
+            // Re-render chart as it's now in the main view
+            this.renderMortgageHistoryChart();
         });
 
         // Bind main 3-tab switching
@@ -1922,8 +1916,9 @@ const App = {
                 document.getElementById('mortgage-main-tabs').scrollIntoView({ behavior: 'instant', block: 'nearest' });
                 
                 // Actions specific to each tab
-                if (tab === 'history') {
-                    this.renderMortgageHistoryChart();
+                if (tab === 'compare') {
+                    // Resizing chart when returning to view
+                    setTimeout(() => this.renderMortgageHistoryChart(), 50);
                 } else if (tab === 'personal') {
                     // Sync personal tab sliders from compare tab
                     const propVal = document.getElementById('compare-property-value')?.value;
@@ -1985,6 +1980,9 @@ const App = {
         this.updatePersonalRates();
         this.renderDiscountCurvesFreshness();
         this.updateCompareMortgageView();
+        
+        // Initial chart render for the merged main view
+        setTimeout(() => this.renderMortgageHistoryChart(), 100);
 
         // ── Amortization Calculator ──
         this._amortYears = 5;
