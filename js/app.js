@@ -700,6 +700,15 @@ const App = {
             breakevenPanel.innerHTML = '';
         }
 
+        // Auto-populate Depå→ISK migration calculator with portfolio values
+        const totalPortfolioValue = rec.totalPortfolioValue;
+        const totalCostBasis = this.getUserPositions().reduce((s, p) => s + (p.costBasis || p.currentValue * 0.8), 0);
+        const migrateValueEl = document.getElementById('depa-migrate-value');
+        const migrateCostEl = document.getElementById('depa-migrate-cost');
+        if (migrateValueEl) migrateValueEl.value = Math.round(totalPortfolioValue);
+        if (migrateCostEl) migrateCostEl.value = Math.round(totalCostBasis);
+        this.updateDepaMigration();
+
         panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
 
@@ -745,14 +754,12 @@ const App = {
             document.getElementById('sim-turnover-display').textContent = (turnover * 100).toFixed(0) + '%';
         }
 
-        // Also update Depå→ISK migration calc
-        this.renderDepaMigration(annualReturn, dividend, years);
     },
 
     /* ═══════ DEPÅ → ISK MIGRATION ═══════ */
     _depaMigrateChart: null,
 
-    renderDepaMigration(annualReturn, dividend, years) {
+    updateDepaMigration() {
         const stepsEl = document.getElementById('depa-migrate-steps');
         const resultsEl = document.getElementById('depa-migrate-results');
         const insightEl = document.getElementById('depa-migrate-insight');
@@ -761,7 +768,16 @@ const App = {
 
         const depVal = parseFloat(document.getElementById('depa-migrate-value')?.value) || 500000;
         const depCost = parseFloat(document.getElementById('depa-migrate-cost')?.value) || 300000;
+        const annualReturn = parseFloat(document.getElementById('depa-migrate-return')?.value || 7) / 100;
+        const years = parseInt(document.getElementById('depa-migrate-years')?.value || 20);
+        const dividend = 0.02;
         const fmt = (v) => new Intl.NumberFormat('sv-SE', {maximumFractionDigits:0}).format(v);
+
+        // Update slider displays
+        const retDisp = document.getElementById('depa-migrate-return-display');
+        const yrsDisp = document.getElementById('depa-migrate-years-display');
+        if (retDisp) retDisp.textContent = (annualReturn * 100).toFixed(1) + '%';
+        if (yrsDisp) yrsDisp.textContent = years + ' år';
 
         const data = TaxEngine.simulateDepaMigration(depVal, depCost, annualReturn, dividend, years);
 
@@ -1596,11 +1612,17 @@ const App = {
             });
         }
 
-        // Depå→ISK migration inputs
+        // Depå→ISK migration inputs (now on Effektiv Front page)
         ['depa-migrate-value', 'depa-migrate-cost'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('change', () => this.runTaxSimulation());
+            if (el) el.addEventListener('change', () => this.updateDepaMigration());
         });
+        ['depa-migrate-return', 'depa-migrate-years'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => this.updateDepaMigration());
+        });
+        // Initial render
+        this.updateDepaMigration();
     },
 
     /* ═══════ SAVINGS TAB ═══════ */

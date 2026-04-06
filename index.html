@@ -194,34 +194,38 @@
             <div class="chart-container" style="flex: 0 1 400px; min-height: 250px; max-height: 400px; margin-bottom: 12px;">
                 <canvas id="frontier-chart"></canvas>
             </div>
+            </div>
+        </div>
 
-            <!-- Recommendations (shown after optimization) -->
-            <div id="recommendations-panel" style="display:none;margin-top:10px;flex:1;overflow-y:auto">
-                <div class="panel-header">
-                    <span class="panel-title">Simulerad Rebalansering (Historiskt baserad)</span>
-                    <span class="panel-badge" id="rec-tax-badge">ISK</span>
+        <!-- FULL-WIDTH: Tax Effect & Recommendations (shown after optimization) -->
+        <div id="recommendations-panel" class="panel" style="display:none;grid-column:1/-1;overflow-y:auto">
+            <div class="panel-header">
+                <span class="panel-title">Simulerad Rebalansering (Historiskt baserad)</span>
+                <span class="panel-badge" id="rec-tax-badge">ISK</span>
+            </div>
+
+            <!-- Summary -->
+            <div class="summary-grid" id="rec-summary">
+                <div class="summary-card">
+                    <div class="label">Portföljvärde</div>
+                    <div class="value accent" id="rec-total-value">—</div>
                 </div>
-
-                <!-- Summary -->
-                <div class="summary-grid" id="rec-summary">
-                    <div class="summary-card">
-                        <div class="label">Portföljvärde</div>
-                        <div class="value accent" id="rec-total-value">—</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="label">Belopp att omplacera</div>
-                        <div class="value" id="rec-net-reinvest" style="color:var(--cyan)">—</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="label">Skatteeffekt vid försäljning</div>
-                        <div class="value negative" id="rec-tax-impact">—</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="label">Skattedrag %</div>
-                        <div class="value" id="rec-tax-drag">—</div>
-                    </div>
+                <div class="summary-card">
+                    <div class="label">Belopp att omplacera</div>
+                    <div class="value" id="rec-net-reinvest" style="color:var(--cyan)">—</div>
                 </div>
+                <div class="summary-card">
+                    <div class="label">Skatteeffekt vid försäljning</div>
+                    <div class="value negative" id="rec-tax-impact">—</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Skattedrag %</div>
+                    <div class="value" id="rec-tax-drag">—</div>
+                </div>
+            </div>
 
+            <!-- Sell & Buy tables side-by-side -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
                 <!-- Sell table -->
                 <div class="rec-section">
                     <div class="rec-title"><span class="arrow sell">▼</span> SÄLJ</div>
@@ -255,34 +259,84 @@
                         <tbody id="buy-table-body"></tbody>
                     </table>
                 </div>
+            </div>
 
-                <!-- Fee savings card -->
-                <div id="fee-savings-section" style="display:none;margin-top:10px">
-                    <div class="panel-header">
-                        <span class="panel-title">Avgiftsbesparing vs Bankfond</span>
+            <!-- Fee savings card -->
+            <div id="fee-savings-section" style="display:none;margin-top:10px">
+                <div class="panel-header">
+                    <span class="panel-title">Avgiftsbesparing vs Bankfond</span>
+                </div>
+                <div class="fee-compare-grid">
+                    <div class="fee-compare-card">
+                        <div class="label">Bankfondens avgift</div>
+                        <div class="value negative" id="fee-bank">—</div>
                     </div>
-                    <div class="fee-compare-grid">
-                        <div class="fee-compare-card">
-                            <div class="label">Bankfondens avgift</div>
-                            <div class="value negative" id="fee-bank">—</div>
-                        </div>
-                        <div class="fee-compare-card">
-                            <div class="label">Din uppskattade avgift</div>
-                            <div class="value positive" id="fee-user">~0.15%</div>
-                        </div>
-                        <div class="fee-compare-card">
-                            <div class="label">Besparing / år (SEK)</div>
-                            <div class="value accent" id="fee-annual-save">—</div>
-                        </div>
-                        <div class="fee-compare-card">
-                            <div class="label">Besparing 10 år (m. ränta)</div>
-                            <div class="value accent" id="fee-10y-save">—</div>
-                        </div>
+                    <div class="fee-compare-card">
+                        <div class="label">Din uppskattade avgift</div>
+                        <div class="value positive" id="fee-user">~0.15%</div>
+                    </div>
+                    <div class="fee-compare-card">
+                        <div class="label">Besparing / år (SEK)</div>
+                        <div class="value accent" id="fee-annual-save">—</div>
+                    </div>
+                    <div class="fee-compare-card">
+                        <div class="label">Besparing 10 år (m. ränta)</div>
+                        <div class="value accent" id="fee-10y-save">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breakeven Time Machine -->
+            <div id="breakeven-panel" style="display:none; margin-top:16px; margin-bottom: 20px; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: var(--radius);">
+            </div>
+
+            <!-- ═══ DEPÅ → ISK FLYTT-KALKYL ═══ -->
+            <div id="depa-migrate-section" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+                <div class="panel-header">
+                    <span class="panel-title">🔄 DEPÅ → ISK FLYTT-KALKYL</span>
+                    <span class="panel-badge" style="font-size:9px">NÄR LÖNAR DET SIG?</span>
+                </div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:12px;">
+                    Simulerar vad som händer om du säljer din depå och flyttar kapitalet till ISK. Använd din portföljs värde och anskaffningsvärde ovan, eller ange egna siffror.
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--text-muted)">Depåvärde idag</label>
+                        <input type="number" id="depa-migrate-value" value="500000" step="50000" min="10000" style="width:100%;margin-top:2px">
+                    </div>
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--text-muted)">Anskaffningsvärde (GAV)</label>
+                        <input type="number" id="depa-migrate-cost" value="300000" step="50000" min="0" style="width:100%;margin-top:2px">
+                    </div>
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--text-muted)">Förväntad avkastning</label>
+                        <input type="range" id="depa-migrate-return" min="2" max="15" value="7" step="0.5" style="width:100%;margin-top:6px">
+                        <div style="text-align:center;font-size:0.65rem;color:var(--text-muted)" id="depa-migrate-return-display">7.0%</div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.65rem;color:var(--text-muted)">Tidshorisont</label>
+                        <input type="range" id="depa-migrate-years" min="1" max="50" value="20" step="1" style="width:100%;margin-top:6px">
+                        <div style="text-align:center;font-size:0.65rem;color:var(--text-muted)" id="depa-migrate-years-display">20 år</div>
                     </div>
                 </div>
 
-                <!-- Breakeven Time Machine -->
-                <div id="breakeven-panel" style="display:none; margin-top:16px; margin-bottom: 20px; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: var(--radius);">
+                <!-- Two column layout: steps + chart -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div>
+                        <!-- Step-by-step breakdown -->
+                        <div id="depa-migrate-steps" style="margin-bottom:12px"></div>
+                        <!-- Comparison cards -->
+                        <div id="depa-migrate-results" style="margin-bottom:12px"></div>
+                        <!-- Insight box -->
+                        <div id="depa-migrate-insight"></div>
+                    </div>
+                    <div>
+                        <!-- Breakeven chart -->
+                        <div class="chart-container" style="min-height:280px;max-height:350px">
+                            <canvas id="depa-migrate-chart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -424,42 +478,6 @@
                     <div class="label">Total skatt ISK</div>
                     <div class="value" id="sim-isk-tax">—</div>
                 </div>
-            </div>
-
-            <!-- ═══ DEPÅ → ISK FLYTT-KALKYL ═══ -->
-            <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
-                <div class="panel-header">
-                    <span class="panel-title">🔄 DEPÅ → ISK FLYTT-KALKYL</span>
-                    <span class="panel-badge" style="font-size:9px">NÄR LÖNAR DET SIG?</span>
-                </div>
-                <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:12px;">
-                    Simulerar vad som händer om du säljer en befintlig depå och flyttar kapitalet till ISK. Jämför med att behålla depån.
-                </div>
-
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-                    <div>
-                        <label style="font-size:0.65rem;color:var(--text-muted)">Depåvärde idag</label>
-                        <input type="number" id="depa-migrate-value" value="500000" step="50000" min="10000" style="width:100%;margin-top:2px">
-                    </div>
-                    <div>
-                        <label style="font-size:0.65rem;color:var(--text-muted)">Anskaffningsvärde (GAV)</label>
-                        <input type="number" id="depa-migrate-cost" value="300000" step="50000" min="0" style="width:100%;margin-top:2px">
-                    </div>
-                </div>
-
-                <!-- Step-by-step breakdown -->
-                <div id="depa-migrate-steps" style="margin-bottom:12px"></div>
-
-                <!-- Comparison table: Sell now vs wait -->
-                <div id="depa-migrate-results" style="margin-bottom:12px"></div>
-
-                <!-- Breakeven chart -->
-                <div class="chart-container" style="min-height:220px;max-height:280px">
-                    <canvas id="depa-migrate-chart"></canvas>
-                </div>
-
-                <!-- Insight box -->
-                <div id="depa-migrate-insight" style="margin-top:8px"></div>
             </div>
         </div>
     </div>
