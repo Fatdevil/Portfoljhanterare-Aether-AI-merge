@@ -894,6 +894,7 @@ body {
 /* ── Section views ──────────────────────────────────────────────────── */
 .view-section { display: none; }
 .view-section.active { display: grid; }
+#view-compare-mortgage.active { display: flex; flex-direction: column; }
 
 /* ── Allocation chart area ──────────────────────────────────────────── */
 .alloc-chart-wrap {
