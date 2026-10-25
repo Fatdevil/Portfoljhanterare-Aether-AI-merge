@@ -1,5 +1,5 @@
 // AUTO-GENERATED FILE. DO NOT EDIT MANUALLY.
-// Uppdaterad: 2026-10-24
+// Uppdaterad: 2026-10-25
 const SAVINGS_ACCOUNTS = [
     {
         "id": "shb_rorligt",
